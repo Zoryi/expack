@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="pBody" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="pCord" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#92400e"/>
+    </linearGradient>
+  </defs>
+  <path d="M6 6 Q6 4 7 4 L17 4 Q18 4 18 6 L18 18 Q18 20 17 20 L7 20 Q6 20 6 18 Z" fill="url(#pBody)" stroke="#92400e" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M6 6 Q6 8 7 8 L17 8 Q18 8 18 6" fill="none" stroke="#92400e" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M10 4 Q12 2 14 4" fill="none" stroke="#92400e" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M9 1 L10 5" stroke="url(#pCord)" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M15 1 L14 5" stroke="url(#pCord)" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M14 8 L14 17 M10 8 L10 17" stroke="#fff" stroke-width="0.8" opacity="0.4" stroke-linecap="round"/>
+  <path d="M7 8 L17 8" stroke="#92400e" stroke-width="0.8" opacity="0.3"/>
+</svg>

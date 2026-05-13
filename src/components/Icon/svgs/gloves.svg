@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="gloveBase" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#d6d3d1"/>
+      <stop offset="100%" stop-color="#78716c"/>
+    </linearGradient>
+    <linearGradient id="gloveAccent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <path d="M8 8V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3" fill="url(#gloveBase)" stroke="#57534e" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M16 7V4a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V6a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v1" fill="url(#gloveBase)" stroke="#57534e" stroke-width="1.2" stroke-linejoin="round"/>
+  <rect x="6" y="14" width="12" height="6" rx="1.5" fill="url(#gloveAccent)" stroke="#c2410c" stroke-width="1"/>
+  <circle cx="12" cy="17" r="1" fill="#fff" opacity=".5"/>
+  <line x1="8" y1="15.5" x2="8" y2="18.5" stroke="#fff" stroke-width=".5" opacity=".3"/>
+  <line x1="16" y1="15.5" x2="16" y2="18.5" stroke="#fff" stroke-width=".5" opacity=".3"/>
+</svg>

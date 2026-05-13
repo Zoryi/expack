@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="homeRoof" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+    <linearGradient id="homeWall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <path d="M3 10l9-7 9 7v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="url(#homeRoof)" stroke="#0891b2" stroke-width="1.5" stroke-linejoin="round"/>
+  <rect x="8" y="14" width="8" height="6" rx="1" fill="url(#homeWall)" stroke="#d97706" stroke-width="1"/>
+  <rect x="9.5" y="15.5" width="2" height="4" rx=".5" fill="#fff" opacity=".4"/>
+</svg>

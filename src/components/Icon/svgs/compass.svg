@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <radialGradient id="compassBg" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </radialGradient>
+    <linearGradient id="compassNeedleN" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <linearGradient id="compassNeedleS" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+  </defs>
+  <circle cx="12" cy="12" r="10" fill="url(#compassBg)" stroke="#0891b2" stroke-width="1.5"/>
+  <circle cx="12" cy="12" r="4" fill="#0f172a" opacity=".85"/>
+  <polygon points="12,5 14,10 12,9.5 10,10" fill="url(#compassNeedleN)" stroke="#dc2626" stroke-width=".5"/>
+  <polygon points="12,19 14,14 12,14.5 10,14" fill="url(#compassNeedleS)" stroke="#64748b" stroke-width=".5"/>
+  <circle cx="12" cy="12" r=".8" fill="#fff" opacity=".9"/>
+  <line x1="12" y1="9" x2="12" y2="8" stroke="#fff" stroke-width=".6" opacity=".4"/>
+  <line x1="12" y1="16" x2="12" y2="15" stroke="#fff" stroke-width=".6" opacity=".4"/>
+</svg>

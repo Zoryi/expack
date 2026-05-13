@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="bootBody" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#92400e"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+    <linearGradient id="bootSole" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#4d7c0f"/>
+      <stop offset="100%" stop-color="#3f6212"/>
+    </linearGradient>
+    <linearGradient id="bootAccent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+  <path d="M4 20h16" stroke="#78350f" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M6 16V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10" fill="url(#bootBody)" stroke="#78350f" stroke-width="1.5" stroke-linejoin="round"/>
+  <line x1="6" y1="16" x2="18" y2="16" stroke="#78350f" stroke-width="1.5"/>
+  <rect x="8" y="11" width="8" height="5" rx="1" fill="url(#bootSole)" stroke="#3f6212" stroke-width="1"/>
+  <path d="M8 19v1M12 19v1M16 19v1" stroke="#92400e" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="12" cy="8" r="1" fill="url(#bootAccent)"/>
+</svg>

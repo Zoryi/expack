@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="tentBody" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="tentInner" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="tentShadow" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#065f73"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <path d="M14 3L4 20h16z" fill="url(#tentShadow)" opacity=".15" transform="translate(1,0)"/>
+  <path d="M12 2L2 20h20z" fill="url(#tentBody)" stroke="#047857" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M12 10L7 20h10z" fill="url(#tentInner)" stroke="#d97706" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M11 16v4h2v-4z" fill="#fff" opacity=".3"/>
+  <circle cx="12" cy="3.5" r="1.5" fill="#fff" opacity=".85"/>
+  <path d="M9 2.5l1 2-1 1" fill="none" stroke="#fff" stroke-width=".8" opacity=".5" stroke-linecap="round"/>
+</svg>

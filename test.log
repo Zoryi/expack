@@ -1,0 +1,38 @@
+
+> expack@1.0.0 build:apk
+> bash scripts/build-apk.sh
+
+=== Building ExPack APK ===
+Wrapping build-tools...
+Wrapping Gradle cache binaries...
+box64 wrapping complete
+[1/5] Building web (Vite)...
+
+> expack@1.0.0 build
+> vite build
+
+vite v8.0.12 building client environment for production...
+[2Ktransforming...✓ 110 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.67 kB │ gzip:   0.39 kB
+dist/assets/index-BRjmv4e-.css    2.44 kB │ gzip:   1.02 kB
+dist/assets/web-C3Duaxj2.js       9.46 kB │ gzip:   1.31 kB
+dist/assets/index-R2puqWog.js   421.90 kB │ gzip: 111.42 kB
+
+✓ built in 2.60s
+[2/5] Copying to Capacitor...
+✔ Copying web assets from dist to android/app/src/main/assets/public in 32.74ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.73ms
+✔ copy android in 105.34ms
+✔ copy web in 28.47ms
+[3/5] Syncing Android...
+✔ Copying web assets from dist to android/app/src/main/assets/public in 45.45ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 1.57ms
+✔ copy android in 119.43ms
+✔ Updating Android plugins in 18.56ms
+[info] Found 1 Capacitor plugin for android:
+       @capacitor-community/sqlite@8.1.0
+✔ update android in 228.65ms
+[info] Sync finished in 0.477s
+[4/5] Building DEBUG APK...

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="bulbBody" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="bulbGlow" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#fef9c3"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" fill="url(#bulbBody)" stroke="#b45309" stroke-width="1.5"/>
+  <line x1="9" y1="18" x2="15" y2="18" stroke="#b45309" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="10" y1="22" x2="14" y2="22" stroke="#b45309" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M10 16h4" stroke="#b45309" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="12" cy="8" r="2.5" fill="url(#bulbGlow)" stroke="#b45309" stroke-width=".8"/>
+  <line x1="12" y1="6.5" x2="12" y2="9.5" stroke="#fff" stroke-width=".6" opacity=".5" stroke-linecap="round"/>
+</svg>

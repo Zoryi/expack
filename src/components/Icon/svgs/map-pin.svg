@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="pinBg" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+  </defs>
+  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="url(#pinBg)" stroke="#991b1b" stroke-width="1.5"/>
+  <circle cx="12" cy="10" r="3" fill="#fff" opacity=".35" stroke="#fff" stroke-width="1"/>
+  <circle cx="12" cy="10" r="1.5" fill="#dc2626"/>
+</svg>
