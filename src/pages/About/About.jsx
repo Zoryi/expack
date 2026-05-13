@@ -48,30 +48,27 @@ export function About() {
       <h1 style={s.title}>À propos</h1>
 
       <div style={s.section}>
-        <h2 style={s.heading}>Qu'est-ce que cette PWA ?</h2>
+        <h2 style={s.heading}>Qu'est-ce que cette application ?</h2>
         <p style={s.text}>
-          Ce template PWA (Progressive Web App) est conçu pour être installé localement sur Android.
-          Il utilise les technologies web standards pour offrir une expérience native : mode
-          déconnecté (offline-first), installation sur l'écran d'accueil, et mise à jour automatique.
+          Cette application est conçue pour être installée localement sur Android.
+          Elle utilise SQLite natif pour le stockage hors ligne et fonctionne sans
+          connexion internet.
         </p>
       </div>
 
       <div style={s.section}>
-        <h2 style={s.heading}>Installation sur Android</h2>
+        <h2 style={s.heading}>Installation</h2>
         <p style={s.text}>
-          1. Construisez l'application avec <code style={s.code}>npm run build</code><br />
-          2. Lancez le serveur de prévisualisation : <code style={s.code}>npm run preview</code><br />
-          3. Ouvrez l'URL (http://&#60;ip-locale&#62;:4173) dans Chrome Android<br />
-          4. Appuyez sur Menu → Installer l'application
+          Téléchargez l'APK via le serveur de l'application, installez-le sur votre
+          appareil Android et profitez de toutes les fonctionnalités hors ligne.
         </p>
       </div>
 
       <div style={s.section}>
         <h2 style={s.heading}>Fonctionnalités</h2>
         <p style={s.text}>
-          ✅ Mode hors ligne (Service Worker + Workbox)<br />
-          ✅ Installation Android (manifest complet)<br />
-          ✅ Mise à jour automatique avec notification<br />
+          ✅ Mode hors ligne (SQLite natif)<br />
+          ✅ Installation Android (APK)<br />
           ✅ Thème clair/sombre avec persistence<br />
           ✅ Interface adaptée aux mobiles<br />
           ✅ Icône dans le tiroir d'applications

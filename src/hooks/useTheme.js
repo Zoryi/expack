@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 
-const STORAGE_KEY = 'pwa-theme'
+const STORAGE_KEY = 'expack-theme'
 
 function getInitialTheme() {
   const stored = localStorage.getItem(STORAGE_KEY)

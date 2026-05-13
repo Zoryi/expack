@@ -5,21 +5,26 @@ import path from 'node:path'
 import os from 'node:os'
 import crypto from 'node:crypto'
 import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const PROJECT_DIR = path.resolve(__dirname, '..')
+const pkg = JSON.parse(fs.readFileSync(path.join(PROJECT_DIR, 'package.json'), 'utf-8'))
+const APP_NAME = pkg.name
 const PORT = parseInt(process.env.PORT || '8080', 10)
-const DIR = path.resolve('.')
+const DIR = PROJECT_DIR
 
 function findAPK() {
   const candidates = [
-    'ExPack.apk',
-    'ExPack-release.apk',
+    `${APP_NAME}.apk`,
+    `${APP_NAME}-release.apk`,
     'android/app/build/outputs/apk/debug/app-debug.apk',
     'android/app/build/outputs/apk/debug/app-debug-unsigned.apk',
     'android/app/build/outputs/apk/release/app-release.apk',
     'android/app/build/outputs/apk/release/app-release-unsigned.apk',
   ]
   for (const c of candidates) {
-    const p = path.resolve(c)
+    const p = path.join(DIR, c)
     if (fs.existsSync(p)) return p
   }
   return null
@@ -80,7 +85,7 @@ function html({ apkExists, apkStat, apkHash, apkName, devices }) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ExPack — Téléchargement APK</title>
+<title>${APP_NAME} — Téléchargement APK</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#0b1120;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100dvh;padding:24px}
@@ -105,7 +110,7 @@ function html({ apkExists, apkStat, apkHash, apkName, devices }) {
 <body>
 <div class="card">
   <div class="icon">📦</div>
-  <h1>ExPack</h1>
+  <h1>${APP_NAME}</h1>
   <p class="sub">APK Android — v${version}</p>
 
   <div class="infobox">
@@ -153,7 +158,7 @@ if (!APK_PATH) {
 const apkExists = !!APK_PATH
 const apkStat = apkExists ? fs.statSync(APK_PATH) : null
 const apkHash = apkExists ? sha256(APK_PATH) : null
-const apkName = apkExists ? path.basename(APK_PATH) : 'ExPack.apk'
+const apkName = apkExists ? path.basename(APK_PATH) : `${APP_NAME}.apk`
 
 const server = http.createServer((req, res) => {
   if (req.url === '/' + apkName && apkExists) {
@@ -172,7 +177,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log('')
-  console.log('  📦 ExPack — Serveur de téléchargement APK')
+  console.log(`  📦 ${APP_NAME.charAt(0).toUpperCase() + APP_NAME.slice(1)} — Serveur de téléchargement APK`)
   console.log('')
   for (const d of devices) {
     console.log(`  http://${d.ip}:${PORT}  (${d.iface})`)

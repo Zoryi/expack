@@ -1,92 +1,60 @@
-const DB_NAME = 'pwa-storage'
-const STORE_NAME = 'data'
-const DB_VERSION = 1
+import { Capacitor } from '@capacitor/core'
+import { CapacitorSQLite, SQLiteConnection } from '@capacitor-community/sqlite'
 
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION)
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE_NAME)
+const sqlite = new SQLiteConnection(CapacitorSQLite)
+const DB_NAME = 'expack_db'
+const STORE_TABLE = 'storage'
+let db = null
+let initPromise = null
+
+async function initDB() {
+  if (db) return db
+  if (initPromise) return initPromise
+  initPromise = (async () => {
+    try {
+      let conn
+      try {
+        conn = await sqlite.retrieveConnection(DB_NAME)
+      } catch {
+        await CapacitorSQLite.closeConnection({ database: DB_NAME }).catch(() => {})
+        conn = await sqlite.createConnection(DB_NAME, false, 'no-encryption', 1, false)
+      }
+      await conn.open()
+      await conn.execute(`CREATE TABLE IF NOT EXISTS ${STORE_TABLE} (key TEXT PRIMARY KEY, value TEXT)`)
+      db = conn
+      return db
+    } catch (e) {
+      initPromise = null
+      throw e
     }
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  })
-}
-
-let dbPromise = null
-
-function getDB() {
-  if (!dbPromise) dbPromise = openDB()
-  return dbPromise
+  })()
+  return initPromise
 }
 
 export const storage = {
-  async get(key, defaultValue = undefined) {
-    const db = await getDB()
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readonly')
-      const req = tx.objectStore(STORE_NAME).get(key)
-      req.onsuccess = () => resolve(req.result !== undefined ? req.result : defaultValue)
-      req.onerror = () => reject(req.error)
-    })
+  async get(key, dflt) {
+    await initDB()
+    const r = await db.query(`SELECT value FROM ${STORE_TABLE} WHERE key=?`, [key])
+    return r.values?.length ? JSON.parse(r.values[0].value) : dflt
   },
-
   async set(key, value) {
-    const db = await getDB()
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite')
-      const req = tx.objectStore(STORE_NAME).put(value, key)
-      req.onsuccess = () => resolve()
-      req.onerror = () => reject(req.error)
-    })
+    await initDB()
+    await db.run(`INSERT OR REPLACE INTO ${STORE_TABLE} (key,value) VALUES(?,?)`, [key, JSON.stringify(value)])
   },
-
   async delete(key) {
-    const db = await getDB()
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite')
-      const req = tx.objectStore(STORE_NAME).delete(key)
-      req.onsuccess = () => resolve()
-      req.onerror = () => reject(req.error)
-    })
+    await initDB()
+    await db.run(`DELETE FROM ${STORE_TABLE} WHERE key=?`, [key])
   },
-
   async clear() {
-    const db = await getDB()
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite')
-      const req = tx.objectStore(STORE_NAME).clear()
-      req.onsuccess = () => resolve()
-      req.onerror = () => reject(req.error)
-    })
+    await initDB()
+    await db.run(`DELETE FROM ${STORE_TABLE}`)
   },
-
   async keys() {
-    const db = await getDB()
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readonly')
-      const req = tx.objectStore(STORE_NAME).getAllKeys()
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
-    })
+    await initDB()
+    return (await db.query(`SELECT key FROM ${STORE_TABLE}`)).values?.map(r => r.key) ?? []
   },
-
   async entries() {
-    const db = await getDB()
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readonly')
-      const req = tx.objectStore(STORE_NAME).openCursor()
-      const results = []
-      req.onsuccess = () => {
-        const cursor = req.result
-        if (cursor) {
-          results.push([cursor.key, cursor.value])
-          cursor.continue()
-        } else {
-          resolve(results)
-        }
-      }
-      req.onerror = () => reject(req.error)
-    })
+    await initDB()
+    return (await db.query(`SELECT key,value FROM ${STORE_TABLE}`)).values?.map(r => [r.key, JSON.parse(r.value)]) ?? []
   },
 }

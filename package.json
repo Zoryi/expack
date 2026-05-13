@@ -3,14 +3,24 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "PWA template prêt pour Android - Offline-first",
+  "description": "Gestion de matériel outdoor — Offline-first APK Android",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "setup:android": "bash scripts/setup-android.sh",
+    "build:apk": "bash scripts/build-apk.sh",
+    "release:apk": "bash scripts/build-apk.sh --release",
+    "serve:apk": "node scripts/serve-apk.js",
+    "icons:android": "node scripts/generate-android-icons.js"
   },
   "dependencies": {
+    "@capacitor-community/sqlite": "^8.1.0",
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.15.0"
@@ -22,7 +32,6 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
-    "vite": "^8.0.10",
-    "vite-plugin-pwa": "^1.3.0"
+    "vite": "^8.0.10"
   }
 }

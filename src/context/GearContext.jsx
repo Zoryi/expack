@@ -1,21 +1,32 @@
-import { createContext, useCallback, useMemo } from 'react'
+import { createContext, useCallback, useMemo, useState, useEffect } from 'react'
 import { useStorage } from '../hooks/useStorage'
-import { createItem, updateItem as updateItemModel, validateItem } from '../models/item'
+import { createItem, updateItem as updateItemModel, validateItem, CONDITION, PRIORITY } from '../models/item'
 import { createCategory } from '../models/category'
 import { DEFAULT_CATEGORIES } from '../models/category'
 import { createKit, resolveKitItems, validateKit } from '../models/kit'
-import { createSac, resolveSac, addDirectEntry, addKitEntry, removeEntry, togglePacked, setAllPacked, getSacTotalWeight, getSacProgress } from '../models/sac'
+import { createSac, resolveSac, addDirectEntry, addKitEntry, removeEntry, togglePacked, toggleFill, setAllPacked, getSacTotalWeight, getSacProgress, TRIP_TYPES } from '../models/sac'
+import { storage } from '../services/storage'
+
+const EMPTY_ITEMS = []
+const EMPTY_KITS = []
+const EMPTY_SACS = []
 
 export const GearContext = createContext(null)
 
 export function GearProvider({ children }) {
-  const [items, setItems, itemsMeta] = useStorage('gear-items', [])
+  const [items, setItems, itemsMeta] = useStorage('gear-items', EMPTY_ITEMS)
   const [categories, setCategories, categoriesMeta] = useStorage('gear-categories', DEFAULT_CATEGORIES)
-  const [kits, setKits, kitsMeta] = useStorage('gear-kits', [])
-  const [sacs, setSacs, sacsMeta] = useStorage('gear-sacs', [])
+  const [kits, setKits, kitsMeta] = useStorage('gear-kits', EMPTY_KITS)
+  const [sacs, setSacs, sacsMeta] = useStorage('gear-sacs', EMPTY_SACS)
 
   const loading = itemsMeta.loading || categoriesMeta.loading || kitsMeta.loading || sacsMeta.loading
   const error = itemsMeta.error || categoriesMeta.error || kitsMeta.error || sacsMeta.error
+
+  const [forceShow, setForceShow] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setForceShow(true), 3000)
+    return () => clearTimeout(timer)
+  }, [])
 
   const getCategory = useCallback((id) => categories.find(c => c.id === id), [categories])
 
@@ -116,9 +127,13 @@ export function GearProvider({ children }) {
     setSacs(prev => prev.map(s => s.id === sacId ? togglePacked(s, packingKey) : s))
   }, [setSacs])
 
-  const sacSetAllPacked = useCallback((sacId, packed) => {
-    setSacs(prev => prev.map(s => s.id === sacId ? setAllPacked(s, packed) : s))
+  const sacToggleFill = useCallback((sacId, packingKey) => {
+    setSacs(prev => prev.map(s => s.id === sacId ? toggleFill(s, packingKey) : s))
   }, [setSacs])
+
+  const sacSetAllPacked = useCallback((sacId, packed) => {
+    setSacs(prev => prev.map(s => s.id === sacId ? setAllPacked(s, packed, kits, items) : s))
+  }, [setSacs, kits, items])
 
   const getItemsByCategory = useCallback((categoryId) => {
     return items.filter(i => i.categoryId === categoryId)
@@ -135,35 +150,185 @@ export function GearProvider({ children }) {
     return kits.filter(k => k.id !== excludeId)
   }, [kits])
 
+  const clearAllData = useCallback(() => {
+    setItems(EMPTY_ITEMS)
+    setCategories(DEFAULT_CATEGORIES)
+    setKits(EMPTY_KITS)
+    setSacs(EMPTY_SACS)
+  }, [setItems, setCategories, setKits, setSacs])
+
+  const generateTestData = useCallback(() => {
+    const newItems = [
+      createItem({ name: 'Tente MSR Hubba Hubba NX', categoryId: 'cat-abri', brand: 'MSR', weight: 1800, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, isFavorite: true, purchasePrice: 450 }),
+      createItem({ name: 'Duvet -10°C', categoryId: 'cat-abri', brand: 'Cumulus', weight: 950, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.INDISPENSABLE, isFavorite: true, purchasePrice: 320 }),
+      createItem({ name: 'Matelas Therm-a-Rest NeoAir', categoryId: 'cat-abri', brand: 'Therm-a-Rest', weight: 510, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 180 }),
+      createItem({ name: 'Coussin gonflable', categoryId: 'cat-abri', brand: 'Sea to Summit', weight: 60, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.OPTIONNEL, purchasePrice: 25 }),
+      createItem({ name: 'Réchaud MSR PocketRocket Deluxe', categoryId: 'cat-cuisine', brand: 'MSR', weight: 73, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, isFavorite: true, purchasePrice: 85 }),
+      createItem({ name: 'Gaz MSR IsoPro 230g', categoryId: 'cat-cuisine', brand: 'MSR', weight: 370, quantity: 2, condition: CONDITION.USAGE, priority: PRIORITY.IMPORTANT, isConsumable: true, consumableType: 'fuel', fullWeight: 370, dryWeight: 140, purchasePrice: 8 }),
+      createItem({ name: 'Casserole Titanium 1.3L', categoryId: 'cat-cuisine', brand: 'Toaks', weight: 125, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 55 }),
+      createItem({ name: 'Gourde Platypus 2L', categoryId: 'cat-cuisine', brand: 'Platypus', weight: 40, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, isConsumable: true, consumableType: 'water', capacityL: 2, purchasePrice: 15 }),
+      createItem({ name: 'T-shirt mérinos 160', categoryId: 'cat-vetements', brand: 'Icebreaker', weight: 150, quantity: 2, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, purchasePrice: 60 }),
+      createItem({ name: 'Pantalon de randonnée', categoryId: 'cat-vetements', brand: 'Fjällräven', weight: 350, quantity: 1, condition: CONDITION.USAGE, priority: PRIORITY.IMPORTANT, purchasePrice: 120 }),
+      createItem({ name: 'Veste imperméable Gore-Tex', categoryId: 'cat-vetements', brand: 'Millet', weight: 420, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 250 }),
+      createItem({ name: 'Sac à dos Osprey Exos 48L', categoryId: 'cat-sac', brand: 'Osprey', weight: 1150, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, isWorn: true, isFavorite: true, purchasePrice: 180 }),
+      createItem({ name: 'Poche à eau 3L', categoryId: 'cat-sac', brand: 'Platypus', weight: 130, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, isConsumable: true, consumableType: 'water', capacityL: 3, purchasePrice: 28 }),
+      createItem({ name: 'Trousse de secours', categoryId: 'cat-securite', brand: '', weight: 200, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 35 }),
+      createItem({ name: 'GPS Garmin eTrex 22x', categoryId: 'cat-navigation', brand: 'Garmin', weight: 141, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, purchasePrice: 200 }),
+      createItem({ name: 'Lampe frontale Petzl Actik Core', categoryId: 'cat-navigation', brand: 'Petzl', weight: 80, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.INDISPENSABLE, purchasePrice: 65 }),
+      createItem({ name: 'Carte IGN 1:25000', categoryId: 'cat-navigation', brand: 'IGN', weight: 50, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 12 }),
+      createItem({ name: 'Brosse à dents pliable', categoryId: 'cat-hygiene', brand: 'Sea to Summit', weight: 20, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.OPTIONNEL, purchasePrice: 8 }),
+      createItem({ name: 'Crème solaire SPF50', categoryId: 'cat-hygiene', brand: '', weight: 80, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.OPTIONNEL, isConsumable: true, consumableType: 'other', purchasePrice: 12 }),
+      createItem({ name: 'Couteau suisse Climber', categoryId: 'cat-divers', brand: 'Victorinox', weight: 75, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, purchasePrice: 35 }),
+      createItem({ name: 'Assiette pliable Sea to Summit', categoryId: 'cat-cuisine', brand: 'Sea to Summit', weight: 55, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.OPTIONNEL, purchasePrice: 18 }),
+      createItem({ name: 'Mug plastique', categoryId: 'cat-cuisine', brand: 'Sea to Summit', weight: 30, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.OPTIONNEL, purchasePrice: 12 }),
+    ]
+
+    const itemIndex = {}
+    for (const item of newItems) {
+      const key = item.name.split(' ').slice(0, 2).join(' ')
+      itemIndex[key] = item.id
+    }
+
+    const messKit = createKit({
+      name: 'Couvert & Vaisselle',
+      description: 'Assiette et mug',
+      icon: 'tools',
+      color: '#84cc16',
+      itemEntries: [
+        { itemId: itemIndex['Assiette pliable'], quantity: 1 },
+        { itemId: itemIndex['Mug plastique'], quantity: 1 },
+      ],
+    })
+
+    const newKits = [
+      createKit({
+        name: 'Cuisine légère',
+        description: 'Kit cuisine pour 1 personne',
+        icon: 'cook',
+        color: '#f59e0b',
+        itemEntries: [
+          { itemId: itemIndex['Réchaud MSR'], quantity: 1 },
+          { itemId: itemIndex['Gaz MSR'], quantity: 2 },
+          { itemId: itemIndex['Casserole Titanium'], quantity: 1 },
+          { itemId: itemIndex['Gourde Platypus'], quantity: 1 },
+        ],
+        subKitEntries: [{ kitId: messKit.id }],
+      }),
+      createKit({
+        name: 'Navigation',
+        description: 'Kit navigation et orientation',
+        icon: 'compass',
+        color: '#06b6d4',
+        itemEntries: [
+          { itemId: itemIndex['GPS Garmin'], quantity: 1 },
+          { itemId: itemIndex['Lampe frontale'], quantity: 1 },
+          { itemId: itemIndex['Carte IGN'], quantity: 1 },
+        ],
+      }),
+      messKit,
+    ]
+
+    const newSacs = [
+      createSac({
+        name: 'Trek Jura 3 jours',
+        description: 'Tour du Jura en 3 jours - mai',
+        destination: 'Jura',
+        duration: 3,
+        type: TRIP_TYPES.TREK,
+        entries: [
+          { entryId: 'e-gen-1', type: 'item', itemId: itemIndex['Tente MSR'], quantity: 1 },
+          { entryId: 'e-gen-2', type: 'item', itemId: itemIndex['Duvet -10°C'], quantity: 1 },
+          { entryId: 'e-gen-3', type: 'item', itemId: itemIndex['Matelas Therm-a-Rest'], quantity: 1 },
+          { entryId: 'e-gen-4', type: 'item', itemId: itemIndex['Coussin gonflable'], quantity: 1 },
+          { entryId: 'e-gen-5', type: 'kit', kitId: newKits[0].id },
+          { entryId: 'e-gen-6', type: 'item', itemId: itemIndex['T-shirt mérinos'], quantity: 2 },
+          { entryId: 'e-gen-7', type: 'item', itemId: itemIndex['Pantalon de'], quantity: 1 },
+          { entryId: 'e-gen-8', type: 'item', itemId: itemIndex['Veste imperméable'], quantity: 1 },
+          { entryId: 'e-gen-9', type: 'item', itemId: itemIndex['Poche à'], quantity: 1 },
+          { entryId: 'e-gen-10', type: 'item', itemId: itemIndex['Trousse de'], quantity: 1 },
+          { entryId: 'e-gen-11', type: 'kit', kitId: newKits[1].id },
+          { entryId: 'e-gen-12', type: 'item', itemId: itemIndex['Brosse à'], quantity: 1 },
+          { entryId: 'e-gen-13', type: 'item', itemId: itemIndex['Crème solaire'], quantity: 1 },
+          { entryId: 'e-gen-14', type: 'item', itemId: itemIndex['Couteau suisse'], quantity: 1 },
+        ],
+        packingState: {},
+      }),
+    ]
+
+    setItems(newItems)
+    setKits(newKits)
+    setSacs(newSacs)
+  }, [setItems, setKits, setSacs])
+
+  const exportData = useCallback(() => {
+    const data = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      items,
+      categories,
+      kits,
+      sacs,
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `expack-export-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [items, categories, kits, sacs])
+
+  const importData = useCallback(async (file) => {
+    const text = await file.text()
+    const data = JSON.parse(text)
+    if (!data.version || !Array.isArray(data.items) || !Array.isArray(data.categories) || !Array.isArray(data.kits) || !Array.isArray(data.sacs)) {
+      throw new Error('Format de fichier invalide')
+    }
+    await storage.set('gear-items', data.items)
+    await storage.set('gear-categories', data.categories)
+    await storage.set('gear-kits', data.kits)
+    await storage.set('gear-sacs', data.sacs)
+    window.location.reload()
+  }, [])
+
   const value = useMemo(() => ({
     items, itemsMeta, categories, categoriesMeta, kits, kitsMeta, sacs, sacsMeta,
     loading, error, getCategory, getItem, getKit, getSac,
-    addItem, updateItem, deleteItem, validateItem,
+    addItem, updateItem, deleteItem,
     addCategory, updateCategory, deleteCategory,
-    addKit, updateKit, deleteKit, validateKit,
+    addKit, updateKit, deleteKit,
     addSac, updateSac, deleteSac, getResolvedSac,
     sacAddDirectItem, sacAddKit, sacRemoveEntry,
-    sacTogglePacked, sacSetAllPacked,
+    sacTogglePacked, sacToggleFill, sacSetAllPacked,
     getSacTotalWeight, getSacProgress,
     getItemsByCategory, getItemsNotInKit,
     getAvailableKits,
     resolveKitItems,
+    validateItem,
+    validateKit,
+    clearAllData, generateTestData, exportData, importData,
   }), [
     items, itemsMeta, categories, categoriesMeta,
     kits, kitsMeta, sacs, sacsMeta,
     loading, error, getCategory, getItem, getKit, getSac,
-    addItem, updateItem, deleteItem, validateItem,
+    addItem, updateItem, deleteItem,
     addCategory, updateCategory, deleteCategory,
-    addKit, updateKit, deleteKit, validateKit,
+    addKit, updateKit, deleteKit,
     addSac, updateSac, deleteSac, getResolvedSac,
     sacAddDirectItem, sacAddKit, sacRemoveEntry,
-    sacTogglePacked, sacSetAllPacked,
+    sacTogglePacked, sacToggleFill, sacSetAllPacked,
     getSacTotalWeight, getSacProgress,
     getItemsByCategory, getItemsNotInKit,
-    getAvailableKits, resolveKitItems,
+    getAvailableKits,
+    resolveKitItems,
+    validateItem,
+    validateKit,
+    clearAllData, generateTestData, exportData, importData,
   ])
 
-  if (loading) {
+  if (loading && !forceShow) {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',

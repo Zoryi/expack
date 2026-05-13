@@ -30,6 +30,20 @@ export const CONDITION_COLORS = {
   [CONDITION.REMPLACER]: '#dc2626',
 }
 
+export const CONSUMABLE_TYPE = {
+  WATER: 'water',
+  FUEL: 'fuel',
+  FOOD: 'food',
+  OTHER: 'other',
+}
+
+export const CONSUMABLE_TYPE_LABELS = {
+  [CONSUMABLE_TYPE.WATER]: 'Eau',
+  [CONSUMABLE_TYPE.FUEL]: 'Gaz',
+  [CONSUMABLE_TYPE.FOOD]: 'Nourriture',
+  [CONSUMABLE_TYPE.OTHER]: 'Autre',
+}
+
 export const CONDITION_ORDER = [
   CONDITION.NEUF,
   CONDITION.BON,
@@ -65,6 +79,10 @@ const DEFAULT_VALUES = {
   purchaseDate: '',
   purchasePrice: null,
   isConsumable: false,
+  consumableType: CONSUMABLE_TYPE.OTHER,
+  capacityL: null,
+  dryWeight: 0,
+  fullWeight: 0,
   isWorn: false,
   priority: PRIORITY.IMPORTANT,
   isFavorite: false,

@@ -1,4 +1,5 @@
 import { useTheme } from '../../hooks/useTheme'
+import { Icon } from '../Icon/Icon'
 
 export function ThemeToggle() {
   const { isDark, toggleTheme } = useTheme()
@@ -18,11 +19,10 @@ export function ThemeToggle() {
         border: '1px solid var(--color-border)',
         cursor: 'pointer',
         color: 'var(--color-text)',
-        fontSize: '20px',
         transition: 'all var(--transition-fast)',
       }}
     >
-      {isDark ? '☀️' : '🌙'}
+      <Icon name={isDark ? 'sun' : 'moon'} />
     </button>
   )
 }

@@ -37,6 +37,7 @@ export function createSac(overrides = {}) {
     type: TRIP_TYPES.BIVOUAC,
     entries: [],
     packingState: {},
+    packingFill: {},
     createdAt: overrides.createdAt || now,
     updatedAt: now,
     ...overrides,
@@ -98,10 +99,23 @@ export function togglePacked(sac, packingKey) {
   }
 }
 
-export function setAllPacked(sac, packed) {
+export function toggleFill(sac, packingKey) {
+  const current = sac.packingFill[packingKey]
+  return {
+    ...sac,
+    packingFill: {
+      ...sac.packingFill,
+      [packingKey]: current === 'empty' ? 'full' : 'empty',
+    },
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+export function setAllPacked(sac, packed, kits = [], items = []) {
+  const resolved = resolveSac(sac, kits, items)
   const newState = {}
-  for (const key of Object.keys(sac.packingState)) {
-    newState[key] = packed
+  for (const fi of resolved.flatItems) {
+    if (!fi.deleted) newState[fi.packingKey] = packed
   }
   return { ...sac, packingState: newState, updatedAt: new Date().toISOString() }
 }
@@ -196,11 +210,21 @@ function resolveKitRecursive(kitId, kits, items, parentNames, parentKitIds) {
   return result
 }
 
+export function getItemEffectiveWeight(fi) {
+  if (fi.consumableType === 'water' && fi.capacityL != null) {
+    return (fi.fillState === 'empty' ? (fi.weight || 0) : (fi.weight || 0) + fi.capacityL * 1000) * fi.quantity
+  }
+  if (fi.consumableType === 'fuel') {
+    return (fi.fillState === 'empty' ? fi.dryWeight : (fi.fullWeight || fi.weight)) * fi.quantity
+  }
+  return (fi.weight || 0) * fi.quantity
+}
+
 export function getSacTotalWeight(sac, kits, items) {
   const resolved = resolveSac(sac, kits, items)
   return resolved.flatItems.reduce((sum, fi) => {
     if (fi.deleted || fi.isWorn) return sum
-    return sum + (fi.weight || 0) * fi.quantity
+    return sum + getItemEffectiveWeight(fi)
   }, 0)
 }
 

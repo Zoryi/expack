@@ -5,3 +5,4 @@ dev-dist
 .DS_Store
 gh-pages
 test.log
+gradle-build.log

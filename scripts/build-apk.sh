@@ -5,7 +5,9 @@ cd "$(dirname "$0")/.."
 RELEASE=false
 if [ "${1:-}" = "--release" ]; then RELEASE=true; fi
 
-echo "=== Building ExPack APK ==="
+# Read app name from package.json
+APP_NAME=$(node -p "require('./package.json').name")
+echo "=== Building ${APP_NAME} APK ==="
 
 # Auto-wrap box64 if on ARM
 [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ] && bash scripts/wrap-x86_64.sh
@@ -25,10 +27,10 @@ if [ "$RELEASE" = true ]; then
   cd android && ./gradlew assembleRelease --no-daemon 2>&1 | tee ../gradle-build.log && cd ..
   APK_FILE=$(ls android/app/build/outputs/apk/release/app-release*.apk 2>/dev/null | head -1)
   if [ -n "$APK_FILE" ]; then
-    cp "$APK_FILE" ExPack-release.apk
+    cp "$APK_FILE" "${APP_NAME}-release.apk"
     echo ""
     echo "=== Release APK ready ==="
-    ls -lh ExPack-release.apk
+    ls -lh "${APP_NAME}-release.apk"
   else
     echo ""
     echo "=== ERROR: Build failed ==="
@@ -45,10 +47,10 @@ else
   cd android && ./gradlew assembleDebug --no-daemon 2>&1 | tee ../gradle-build.log && cd ..
   APK_FILE=$(ls android/app/build/outputs/apk/debug/app-debug*.apk 2>/dev/null | head -1)
   if [ -n "$APK_FILE" ]; then
-    cp "$APK_FILE" ExPack.apk
+    cp "$APK_FILE" "${APP_NAME}.apk"
     echo ""
     echo "=== Debug APK ready ==="
-    ls -lh ExPack.apk
+    ls -lh "${APP_NAME}.apk"
   else
     echo ""
     echo "=== ERROR: Build failed ==="
