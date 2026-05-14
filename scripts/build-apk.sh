@@ -32,6 +32,8 @@ if [ "$RELEASE" = true ]; then
     echo ""
     echo "=== Release APK ready ==="
     ls -lh "${APP_NAME}-release.apk"
+    bash scripts/build-gh-pages.sh
+    rm -f "${APP_NAME}-release.apk"
   else
     echo ""
     echo "=== ERROR: Build failed ==="
@@ -52,6 +54,8 @@ else
     echo ""
     echo "=== Debug APK ready ==="
     ls -lh "${APP_NAME}.apk"
+    bash scripts/build-gh-pages.sh
+    rm -f "${APP_NAME}.apk"
   else
     echo ""
     echo "=== ERROR: Build failed ==="
