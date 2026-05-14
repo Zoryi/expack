@@ -16,8 +16,8 @@ const DIR = PROJECT_DIR
 
 function findAPK() {
   const candidates = [
-    `gh-pages/apk/${APP_NAME}.apk`,
-    `gh-pages/apk/${APP_NAME}-release.apk`,
+    `docs/apk/${APP_NAME}.apk`,
+    `docs/apk/${APP_NAME}-release.apk`,
     `${APP_NAME}.apk`,
     `${APP_NAME}-release.apk`,
     'android/app/build/outputs/apk/debug/app-debug.apk',

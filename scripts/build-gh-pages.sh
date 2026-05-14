@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUTDIR="./gh-pages"
+OUTDIR="./docs"
 rm -rf "$OUTDIR"
 mkdir -p "$OUTDIR"
 
@@ -93,7 +93,7 @@ cat > "$OUTDIR/index.html" <<EOF
 </html>
 EOF
 
-echo "✓ gh-pages ready: $OUTDIR/index.html"
+echo "✓ Download pages ready: $OUTDIR/index.html"
 for APK in "${APKS[@]}"; do
   NAME=$(basename "$APK")
   SIZE_H=$(numfmt --to=iec "$(stat --printf='%s' "$APK")")
