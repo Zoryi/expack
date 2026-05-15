@@ -42,12 +42,15 @@ export default function App() {
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/items/new" element={<ItemForm />} />
               <Route path="/items/:id" element={<ItemDetail />} />
+              <Route path="/items/:id/edit" element={<ItemForm />} />
               <Route path="/kits" element={<KitsPage />} />
               <Route path="/kits/new" element={<KitForm />} />
               <Route path="/kits/:id" element={<KitDetail />} />
+              <Route path="/kits/:id/edit" element={<KitForm />} />
               <Route path="/sacs" element={<SacsPage />} />
               <Route path="/sacs/new" element={<SacForm />} />
               <Route path="/sacs/:id" element={<SacDetail />} />
+              <Route path="/sacs/:id/edit" element={<SacForm />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/stats" element={<StatsPage />} />
               <Route path="/about" element={<About />} />
