@@ -2,19 +2,22 @@
 set -euo pipefail
 
 OUTDIR="./docs"
-rm -rf "$OUTDIR"
-mkdir -p "$OUTDIR"
+mkdir -p "$OUTDIR/apk"
 
 APP_NAME=$(node -p "require('./package.json').name")
 VERSION=$(node -p "require('./package.json').version")
 
-APKS=()
 for f in "${APP_NAME}"*.apk; do
+  [ -f "$f" ] && cp "$f" "$OUTDIR/apk/$(basename "$f")"
+done
+
+APKS=()
+for f in "$OUTDIR/apk/${APP_NAME}"*.apk; do
   [ -f "$f" ] && APKS+=("$f")
 done
 
 if [ ${#APKS[@]} -eq 0 ]; then
-  echo "ERROR: No APK found matching ${APP_NAME}*.apk at project root"
+  echo "ERROR: No APK found matching ${APP_NAME}*.apk in $OUTDIR/apk/"
   exit 1
 fi
 
@@ -24,9 +27,6 @@ for APK in "${APKS[@]}"; do
   SIZE=$(stat --printf="%s" "$APK")
   SIZE_H=$(numfmt --to=iec "$SIZE")
   HASH=$(sha256sum "$APK" | cut -d' ' -f1)
-
-  mkdir -p "$OUTDIR/apk"
-  cp "$APK" "$OUTDIR/apk/$NAME"
 
   if [[ "$NAME" == *-release* ]]; then
     BADGE="Release"
