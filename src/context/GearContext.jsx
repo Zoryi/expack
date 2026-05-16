@@ -1,6 +1,6 @@
 import { createContext, useCallback, useMemo, useState, useEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
-import { Filesystem, Directory } from '@capacitor/filesystem'
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { useStorage } from '../hooks/useStorage'
 import { createItem, updateItem as updateItemModel, validateItem, CONDITION, PRIORITY } from '../models/item'
@@ -280,6 +280,7 @@ export function GearProvider({ children }) {
         path: filename,
         data: json,
         directory: Directory.Cache,
+        encoding: Encoding.UTF8,
       })
       Share.share({
         title: 'Exporter les données',
