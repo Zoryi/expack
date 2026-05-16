@@ -1,4 +1,7 @@
 import { createContext, useCallback, useMemo, useState, useEffect } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { Filesystem, Directory } from '@capacitor/filesystem'
+import { Share } from '@capacitor/share'
 import { useStorage } from '../hooks/useStorage'
 import { createItem, updateItem as updateItemModel, validateItem, CONDITION, PRIORITY } from '../models/item'
 import { createCategory } from '../models/category'
@@ -260,7 +263,7 @@ export function GearProvider({ children }) {
     setSacs(newSacs)
   }, [setItems, setKits, setSacs])
 
-  const exportData = useCallback(() => {
+  const exportData = useCallback(async () => {
     const data = {
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -269,15 +272,31 @@ export function GearProvider({ children }) {
       kits,
       sacs,
     }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `expack-export-${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    const filename = `expack-export-${new Date().toISOString().slice(0, 10)}.json`
+    const json = JSON.stringify(data, null, 2)
+
+    if (Capacitor.isNativePlatform()) {
+      const result = await Filesystem.writeFile({
+        path: filename,
+        data: json,
+        directory: Directory.Cache,
+      })
+      Share.share({
+        title: 'Exporter les données',
+        text: 'Fichier d\'export ExPack',
+        url: result.uri,
+      }).catch(() => {})
+    } else {
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    }
   }, [items, categories, kits, sacs])
 
   const importData = useCallback(async (file) => {

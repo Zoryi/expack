@@ -51,6 +51,7 @@ export function StatsPage() {
   const [showClearModal, setShowClearModal] = useState(false)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [importError, setImportError] = useState(null)
+  const [exporting, setExporting] = useState(false)
   const fileInputRef = useRef(null)
 
   const stats = useMemo(() => {
@@ -90,6 +91,15 @@ export function StatsPage() {
 
   const totalSacs = sacs.length
   const totalKits = kits.length
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      await exportData()
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const handleImportFile = async (e) => {
     const file = e.target.files?.[0]
@@ -201,7 +211,7 @@ export function StatsPage() {
         <div style={s.adminGrid}>
           <button style={s.adminBtnDanger} onClick={() => setShowClearModal(true)}><Icon name="trash" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Tout effacer</button>
           <button style={s.adminBtn} onClick={() => setShowGenerateModal(true)}><Icon name="refresh" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Données de test</button>
-          <button style={s.adminBtn} onClick={exportData}><Icon name="export" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Exporter</button>
+          <button style={s.adminBtn} onClick={handleExport} disabled={exporting}><Icon name="export" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {exporting ? 'Export…' : 'Exporter'}</button>
           <button style={s.adminBtn} onClick={() => fileInputRef.current?.click()}><Icon name="import" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Importer</button>
         </div>
         {importError && <div style={s.importError}>{importError}</div>}
