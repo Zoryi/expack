@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Header } from '../../components/Header/Header'
 import { Icon } from '../../components/Icon/Icon'
 import { Modal } from '../../components/Modal/Modal'
+import { QRCodeModal } from '../../components/QRCodeModal/QRCodeModal'
 import { useGear } from '../../hooks/useGear'
 import { resolveSac, getSacProgress, getSacTotalWeight, getItemEffectiveWeight } from '../../models/sac'
+import { prepareSharePayload, safeCompressForQr, getFocalInfo } from '../../utils/share'
 
 const s = {
   container: { minHeight: '100dvh', background: 'var(--color-bg)' },
@@ -67,8 +69,30 @@ const s = {
 export function SacDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { sacs, kits, items, deleteSac, sacTogglePacked, sacToggleFill, sacSetAllPacked } = useGear()
+  const { sacs, kits, items, categories, deleteSac, sacTogglePacked, sacToggleFill, sacSetAllPacked } = useGear()
   const [showDelete, setShowDelete] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [shareData, setShareData] = useState(null)
+  const [shareError, setShareError] = useState(null)
+
+  function handleShare() {
+    setShareError(null)
+    try {
+      const payload = prepareSharePayload('sac', id, items, categories, kits, sacs)
+      const result = safeCompressForQr(payload)
+      if (!result.ok) {
+        console.error('Échec de la préparation du partage:', result.error)
+        setShareError("Impossible de préparer le partage. Réessayez ou mettez à jour l'application.")
+        return
+      }
+      const focalInfo = getFocalInfo(payload)
+      setShareData({ compressed: result.value, focalInfo, payload })
+      setShowShare(true)
+    } catch (err) {
+      console.error('Erreur lors du partage:', err)
+      setShareError("Une erreur est survenue lors du partage. Réessayez.")
+    }
+  }
 
   const sac = sacs.find(s => s.id === id)
   const resolved = sac ? resolveSac(sac, kits, items) : null
@@ -146,8 +170,15 @@ export function SacDetail() {
         rightAction={
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={() => navigate(`/sacs/${sac.id}/edit`)}
+              onClick={handleShare}
               style={{ border: 'none', background: 'transparent', fontSize: '16px', cursor: 'pointer', color: 'var(--color-primary)' }}
+              aria-label="Partager"
+            >
+              <Icon name="share" />
+            </button>
+            <button
+              onClick={() => navigate(`/sacs/${sac.id}/edit`)}
+              style={{ border: 'none', background: 'transparent', fontSize: '16px', cursor: 'pointer', color: 'var(--color-text)' }}
               aria-label="Modifier"
             >
               <Icon name="edit" />
@@ -164,6 +195,11 @@ export function SacDetail() {
       />
 
       <div style={s.content}>
+        {shareError && (
+          <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-md)', background: '#ef444422', color: '#ef4444', fontSize: 'var(--text-sm)', marginBottom: '16px' }}>
+            {shareError}
+          </div>
+        )}
         <div style={s.infoCard}>
           <div style={s.name}>{sac.name}</div>
           {(sac.destination || sac.tripDate || sac.duration > 0) && (
@@ -281,6 +317,15 @@ export function SacDetail() {
 
         <div style={s.bottom} />
       </div>
+
+      {showShare && shareData && (
+        <QRCodeModal
+          compressed={shareData.compressed}
+          focalInfo={shareData.focalInfo}
+          payload={shareData.payload}
+          onClose={() => setShowShare(false)}
+        />
+      )}
 
       {showDelete && (
         <Modal

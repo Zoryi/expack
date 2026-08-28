@@ -43,6 +43,7 @@ import Food from './svgs/food.svg?react'
 import Duffel from './svgs/duffel.svg?react'
 import Export from './svgs/export.svg?react'
 import Import from './svgs/import.svg?react'
+import Share from './svgs/share.svg?react'
 
 export const ICONS = {
   home: Home,
@@ -87,6 +88,7 @@ export const ICONS = {
   export: Export,
   import: Import,
   refresh: Refresh,
+  share: Share,
   droplet: Droplet,
   flame: Flame,
   food: Food,
@@ -134,6 +136,7 @@ export const EMOJI_TO_ICON = {
   '⏱': 'clock',
   '📤': 'export',
   '📥': 'import',
+  '🔗': 'share',
   '🔄': 'refresh',
   '▸': 'chevron-right',
 }

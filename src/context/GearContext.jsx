@@ -4,6 +4,7 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { useStorage } from '../hooks/useStorage'
 import { createItem, updateItem as updateItemModel, validateItem, CONDITION, PRIORITY } from '../models/item'
+import { reassignIds } from '../utils/share'
 import { createCategory } from '../models/category'
 import { DEFAULT_CATEGORIES } from '../models/category'
 import { createKit, resolveKitItems, validateKit } from '../models/kit'
@@ -300,9 +301,36 @@ export function GearProvider({ children }) {
     }
   }, [items, categories, kits, sacs])
 
+  const importSharedData = useCallback((payload) => {
+    const existingState = { items, categories, kits, sacs }
+    const reassigned = reassignIds(payload, existingState)
+
+    setCategories(prev => {
+      const existingByName = {}
+      for (const c of prev) existingByName[c.name.toLowerCase()] = true
+      const merged = [...prev]
+      for (const cat of reassigned.categories) {
+        if (!existingByName[cat.name.toLowerCase()]) {
+          merged.push(cat)
+        }
+      }
+      return merged
+    })
+
+    setItems(prev => [...prev, ...reassigned.items])
+    setKits(prev => [...prev, ...reassigned.kits])
+    setSacs(prev => [...prev, ...reassigned.sacs])
+  }, [items, categories, kits, sacs, setItems, setCategories, setKits, setSacs])
+
   const importData = useCallback(async (file) => {
     const text = await file.text()
     const data = JSON.parse(text)
+
+    if (data.op === 'share') {
+      importSharedData(data)
+      return
+    }
+
     if (!data.version || !Array.isArray(data.items) || !Array.isArray(data.categories) || !Array.isArray(data.kits) || !Array.isArray(data.sacs)) {
       throw new Error('Format de fichier invalide')
     }
@@ -311,7 +339,7 @@ export function GearProvider({ children }) {
     await storage.set('gear-kits', data.kits)
     await storage.set('gear-sacs', data.sacs)
     window.location.reload()
-  }, [])
+  }, [importSharedData])
 
   const value = useMemo(() => ({
     items, itemsMeta, categories, categoriesMeta, kits, kitsMeta, sacs, sacsMeta,
@@ -328,7 +356,7 @@ export function GearProvider({ children }) {
     resolveKitItems,
     validateItem,
     validateKit,
-    clearAllData, generateTestData, exportData, importData,
+    clearAllData, generateTestData, exportData, importData, importSharedData,
   }), [
     items, itemsMeta, categories, categoriesMeta,
     kits, kitsMeta, sacs, sacsMeta,
@@ -345,7 +373,7 @@ export function GearProvider({ children }) {
     resolveKitItems,
     validateItem,
     validateKit,
-    clearAllData, generateTestData, exportData, importData,
+    clearAllData, generateTestData, exportData, importData, importSharedData,
   ])
 
   if (loading && !forceShow) {

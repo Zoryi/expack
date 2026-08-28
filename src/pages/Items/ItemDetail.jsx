@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Header } from '../../components/Header/Header'
 import { Icon } from '../../components/Icon/Icon'
 import { Modal } from '../../components/Modal/Modal'
+import { QRCodeModal } from '../../components/QRCodeModal/QRCodeModal'
 import { useGear } from '../../hooks/useGear'
 import { CONDITION_LABELS, CONDITION_COLORS, PRIORITY_LABELS } from '../../models/item'
 import { resolveSac } from '../../models/sac'
+import { prepareSharePayload, safeCompressForQr, getFocalInfo } from '../../utils/share'
 
 const s = {
   container: { minHeight: '100dvh', background: 'var(--color-bg)' },
@@ -43,6 +45,28 @@ export function ItemDetail() {
   const navigate = useNavigate()
   const { items, categories, kits, sacs, deleteItem } = useGear()
   const [showDelete, setShowDelete] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [shareData, setShareData] = useState(null)
+  const [shareError, setShareError] = useState(null)
+
+  function handleShare() {
+    setShareError(null)
+    try {
+      const payload = prepareSharePayload('item', id, items, categories, kits, sacs)
+      const result = safeCompressForQr(payload)
+      if (!result.ok) {
+        console.error('Échec de la préparation du partage:', result.error)
+        setShareError("Impossible de préparer le partage. Réessayez ou mettez à jour l'application.")
+        return
+      }
+      const focalInfo = getFocalInfo(payload)
+      setShareData({ compressed: result.value, focalInfo, payload })
+      setShowShare(true)
+    } catch (err) {
+      console.error('Erreur lors du partage:', err)
+      setShareError("Une erreur est survenue lors du partage. Réessayez.")
+    }
+  }
 
   const item = items.find(i => i.id === id)
   const category = item ? categories.find(c => c.id === item.categoryId) : null
@@ -78,12 +102,18 @@ export function ItemDetail() {
         onBack={() => navigate('/inventory')}
         rightAction={
           <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={handleShare} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-primary)', display: 'flex' }} aria-label="Partager"><Icon name="share" /></button>
             <button onClick={() => navigate(`/items/${id}/edit`)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)', display: 'flex' }} aria-label="Modifier"><Icon name="edit" /></button>
             <button onClick={() => setShowDelete(true)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-danger)', display: 'flex' }} aria-label="Supprimer"><Icon name="trash" /></button>
           </div>
         }
       />
       <div style={s.content}>
+        {shareError && (
+          <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-md)', background: '#ef444422', color: '#ef4444', fontSize: 'var(--text-sm)', marginBottom: '16px' }}>
+            {shareError}
+          </div>
+        )}
         <div style={s.infoCard}>
           <div style={s.catRow}>
             {category && (
@@ -222,6 +252,15 @@ export function ItemDetail() {
           <div style={s.emptyText}>Cet article n'est utilisé dans aucun kit ni sac.</div>
         )}
       </div>
+
+      {showShare && shareData && (
+        <QRCodeModal
+          compressed={shareData.compressed}
+          focalInfo={shareData.focalInfo}
+          payload={shareData.payload}
+          onClose={() => setShowShare(false)}
+        />
+      )}
 
       {showDelete && (
         <Modal

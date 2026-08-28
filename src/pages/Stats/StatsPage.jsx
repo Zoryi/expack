@@ -4,6 +4,7 @@ import { useGear } from '../../hooks/useGear'
 import { Icon } from '../../components/Icon/Icon'
 import { CONDITION_LABELS, CONDITION_COLORS, CONDITION_ORDER } from '../../models/item'
 import { Modal } from '../../components/Modal/Modal'
+import { QRScanner } from '../../components/QRScanner/QRScanner'
 
 const s = {
   container: { padding: '24px 16px', animation: 'fadeIn 400ms ease', paddingBottom: '32px' },
@@ -46,10 +47,12 @@ const s = {
 }
 
 export function StatsPage() {
-  const { items, categories, kits, sacs, clearAllData, generateTestData, exportData, importData } = useGear()
+  const { items, categories, kits, sacs, clearAllData, generateTestData, exportData, importData, importSharedData } = useGear()
 
   const [showClearModal, setShowClearModal] = useState(false)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
+  const [showImportSheet, setShowImportSheet] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
   const [importError, setImportError] = useState(null)
   const [exporting, setExporting] = useState(false)
   const fileInputRef = useRef(null)
@@ -212,7 +215,7 @@ export function StatsPage() {
           <button style={s.adminBtnDanger} onClick={() => setShowClearModal(true)}><Icon name="trash" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Tout effacer</button>
           <button style={s.adminBtn} onClick={() => setShowGenerateModal(true)}><Icon name="refresh" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Données de test</button>
           <button style={s.adminBtn} onClick={handleExport} disabled={exporting}><Icon name="export" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {exporting ? 'Export…' : 'Exporter'}</button>
-          <button style={s.adminBtn} onClick={() => fileInputRef.current?.click()}><Icon name="import" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Importer</button>
+          <button style={s.adminBtn} onClick={() => setShowImportSheet(true)}><Icon name="import" size="xs" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Importer</button>
         </div>
         {importError && <div style={s.importError}>{importError}</div>}
       </div>
@@ -223,6 +226,81 @@ export function StatsPage() {
     </div>
 
       <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportFile} />
+
+      {showImportSheet && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000, padding: '24px',
+          animation: 'fadeIn 150ms ease',
+        }} onClick={() => setShowImportSheet(false)}>
+          <div style={{
+            background: 'var(--color-surface)', borderRadius: 'var(--radius-xl)',
+            padding: '24px', maxWidth: '360px', width: '100%',
+            animation: 'scaleIn 200ms ease',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: '16px', color: 'var(--color-text)' }}>
+              Importer
+            </div>
+            <button
+              style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                width: '100%', padding: '14px 16px',
+                borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)', color: 'var(--color-text)',
+                fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer',
+                marginBottom: '8px',
+              }}
+              onClick={() => { setShowImportSheet(false); fileInputRef.current?.click() }}
+            >
+              <Icon name="import" size="sm" />
+              <span style={{ textAlign: 'left' }}>
+                <div>Fichier .json</div>
+                <div style={{ fontSize: '11px', fontWeight: 400, color: 'var(--color-text-secondary)' }}>
+                  Importer un fichier d'export ou de partage
+                </div>
+              </span>
+            </button>
+            <button
+              style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                width: '100%', padding: '14px 16px',
+                borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)', color: 'var(--color-text)',
+                fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer',
+                marginBottom: '16px',
+              }}
+              onClick={() => { setShowImportSheet(false); setShowScanner(true) }}
+            >
+              <Icon name="share" size="sm" />
+              <span style={{ textAlign: 'left' }}>
+                <div>Scanner QR code</div>
+                <div style={{ fontSize: '11px', fontWeight: 400, color: 'var(--color-text-secondary)' }}>
+                  Scannez un QR de partage ExPack
+                </div>
+              </span>
+            </button>
+            <button
+              style={{
+                display: 'block', width: '100%', padding: '10px',
+                borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)',
+                background: 'transparent', color: 'var(--color-text)',
+                fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer',
+              }}
+              onClick={() => setShowImportSheet(false)}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showScanner && (
+        <QRScanner
+          onImport={(payload) => importSharedData(payload)}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
 
       {showClearModal && (
         <Modal
