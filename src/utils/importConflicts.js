@@ -27,6 +27,11 @@ export const MEANINGFUL_ITEM_FIELDS = [
   'notes',
 ]
 
+const NUMERIC_ITEM_FIELDS = new Set([
+  'weight', 'quantity', 'length', 'width', 'depth', 'volume',
+  'purchasePrice', 'capacityL', 'dryWeight', 'fullWeight',
+])
+
 export const ITEM_FIELD_LABELS = {
   name: 'Nom',
   categoryId: 'Catégorie',
@@ -62,6 +67,51 @@ function normalize(str) {
   return (str || '').trim().toLowerCase()
 }
 
+function isFilled(value) {
+  return value !== undefined && value !== null && value !== ''
+}
+
+function categoryNameForId(categories, id) {
+  if (!categories || !id) return ''
+  const cat = categories.find(c => c.id === id)
+  return cat ? cat.name : ''
+}
+
+function itemFieldCompare(existing, imported, field, existingState, payload) {
+  const ea = existing[field]
+  const ia = imported[field]
+  const eEmpty = !isFilled(ea)
+  const iEmpty = !isFilled(ia)
+  if (eEmpty && iEmpty) return 0
+  if (field === 'categoryId') {
+    const en = categoryNameForId(existingState.categories, ea)
+    const im = categoryNameForId(payload.categories, ia)
+    return (!!en && en === im) ? 1 : -1
+  }
+  if (NUMERIC_ITEM_FIELDS.has(field)) {
+    if (eEmpty || iEmpty) return -1
+    const e = Number(ea)
+    const i = Number(ia)
+    if (e === i) return 2
+    const max = Math.max(Math.abs(e), Math.abs(i), 1)
+    const rel = Math.abs(e - i) / max
+    return rel < 0.05 ? 1 : (rel < 0.3 ? 0 : -1)
+  }
+  if (typeof ea === 'boolean' || typeof ia === 'boolean') {
+    return ea === ia ? 1 : -1
+  }
+  if (normalize(String(ea)) === normalize(String(ia))) return 1
+  return 0
+}
+
+function scoreSimilarity(existing, imported, existingState, payload) {
+  let score = 0
+  for (const field of MEANINGFUL_ITEM_FIELDS) {
+    score += itemFieldCompare(existing, imported, field, existingState, payload)
+  }
+  return score
+}
+
 export function detectConflicts(payload, existingState) {
   const existingCategoriesByName = {}
   for (const cat of existingState.categories) {
@@ -78,13 +128,29 @@ export function detectConflicts(payload, existingState) {
   for (let i = 0; i < payload.items.length; i++) {
     const imported = payload.items[i]
     const existingCat = resolutionForCategory(imported.categoryId, payload)
-    let existing = existingState.items.find(it =>
-      normalize(it.name) === normalize(imported.name) && existingCat && it.categoryId === existingCat.id
-    )
-    if (!existing && !existingCat && imported.categoryId) {
-      existing = existingState.items.find(it => normalize(it.name) === normalize(imported.name))
+
+    const candidates = []
+    for (const it of existingState.items) {
+      if (normalize(it.name) !== normalize(imported.name)) continue
+      const sameCategory = existingCat && it.categoryId === existingCat.id
+      const nameMatch = !sameCategory
+      if (sameCategory || nameMatch) {
+        candidates.push(it)
+      }
     }
-    if (existing) items.push({ index: i, imported, existing })
+
+    if (candidates.length === 0) continue
+
+    const ranked = candidates
+      .map(existing => ({ existing, score: scoreSimilarity(existing, imported, existingState, payload) }))
+      .sort((a, b) => b.score - a.score)
+
+    items.push({
+      index: i,
+      imported,
+      candidates: ranked,
+      selectedExistingId: ranked[0].existing.id,
+    })
   }
 
   const kits = []
@@ -123,6 +189,15 @@ function decisionAction(decision) {
   if (!decision) return DUPLICATE
   if (typeof decision === 'string') return decision
   return decision.action || DUPLICATE
+}
+
+function resolveChosenExisting(conflict, decision) {
+  if (!conflict) return null
+  const chosenId = decision && decision.existingId
+    ? decision.existingId
+    : conflict.selectedExistingId
+  const found = conflict.candidates.find(c => c.existing.id === chosenId)
+  return found ? found.existing : (conflict.candidates[0] ? conflict.candidates[0].existing : null)
 }
 
 function mergeKitReferences(existingKit, importedKit, itemIdMap, kitIdMap) {
@@ -216,21 +291,23 @@ export function applyImport(payload, existingState, decisions = {}) {
   for (let i = 0; i < payload.items.length; i++) {
     const imported = payload.items[i]
     const conflict = itemConflictByIndex[i] || null
-    const action = decisionAction(decisions.items[i])
-    const fields = decisions.items[i] && decisions.items[i].action === MERGE
-      ? decisions.items[i].fields || {}
+    const decision = decisions.items[i]
+    const action = decisionAction(decision)
+    const fields = decision && decision.action === MERGE
+      ? decision.fields || {}
       : {}
+    const target = resolveChosenExisting(conflict, decision)
 
     if (action === SKIP) {
-      itemIdMap[imported.id] = conflict ? conflict.existing.id : imported.id
+      itemIdMap[imported.id] = target ? target.id : imported.id
       continue
     }
 
     const categoryId = catIdMap[imported.categoryId] || imported.categoryId
 
-    if (action === MERGE && conflict) {
-      const merged = mergeItem(conflict.existing, { ...imported, categoryId }, fields)
-      const idx = finalItems.findIndex(it => it.id === conflict.existing.id)
+    if (action === MERGE && target) {
+      const merged = mergeItem(target, { ...imported, categoryId }, fields)
+      const idx = finalItems.findIndex(it => it.id === target.id)
       if (idx >= 0) finalItems[idx] = merged
       else finalItems.push(merged)
       itemIdMap[imported.id] = merged.id
