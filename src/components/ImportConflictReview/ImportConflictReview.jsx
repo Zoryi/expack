@@ -54,20 +54,42 @@ const s = {
   },
   actionActive: { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: 'white' },
   fieldList: { marginTop: '4px', borderTop: '1px solid var(--color-border)', paddingTop: '8px' },
-  fieldRow: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    gap: '8px', padding: '4px 0', fontSize: '12px',
+  fieldItem: {
+    marginBottom: '8px', padding: '8px', borderRadius: 'var(--radius-md)',
+    border: '1px solid var(--color-border)', background: 'var(--color-bg)',
   },
-  fieldLabel: { color: 'var(--color-text)' },
-  fieldToggle: { display: 'flex', gap: '4px' },
+  fieldTitle: {
+    fontSize: '11px', fontWeight: 700, textTransform: 'capitalize',
+    color: 'var(--color-text-secondary)', marginBottom: '6px',
+  },
+  optRow: {
+    display: 'flex', alignItems: 'center', gap: '8px',
+    padding: '5px 6px', borderRadius: '6px',
+  },
+  optRowSelected: { background: 'var(--color-surface)', boxShadow: 'inset 2px 0 0 var(--color-primary)' },
+  optSource: {
+    flexShrink: 0, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+    letterSpacing: '0.5px', color: 'var(--color-text-secondary)', width: '52px',
+  },
   fieldChoice: {
-    padding: '3px 6px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+    padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
     borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)',
     backgroundColor: 'var(--color-bg)',
     color: 'var(--color-text-secondary)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+    textAlign: 'center',
   },
   fieldChoiceActive: { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: 'white' },
+  optValue: {
+    flex: 1, fontSize: '12px', color: 'var(--color-text)',
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  optValueEmpty: { color: 'var(--color-text-secondary)', fontStyle: 'italic' },
+  bulkBar: { display: 'flex', gap: '8px', marginBottom: '12px' },
+  bulkBtn: {
+    flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-md)',
+    border: '1px solid var(--color-border)', background: 'transparent',
+    color: 'var(--color-text)', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+  },
   footer: { display: 'flex', gap: '8px', justifyContent: 'flex-end' },
   primaryBtn: {
     padding: '10px 20px', borderRadius: 'var(--radius-md)',
@@ -93,13 +115,58 @@ function actionLabel(action) {
   return 'Dupliquer'
 }
 
+function isFilled(value) {
+  return value !== undefined && value !== null && value !== ''
+}
+
+function categoryName(categories, id) {
+  const cat = categories.find(c => c.id === id)
+  return cat ? cat.name : id
+}
+
+function formatValue(field, value, categories) {
+  if (!isFilled(value)) return '—'
+  if (field === 'categoryId') return categoryName(categories, value)
+  if (typeof value === 'boolean') return value ? 'Oui' : 'Non'
+  return String(value)
+}
+
+function valuesDiffer(a, b) {
+  if (!isFilled(a) && !isFilled(b)) return false
+  return String(a ?? '') !== String(b ?? '')
+}
+
+function fieldDiffers(c, field, payload, existingState) {
+  if (field === 'categoryId') {
+    const en = categoryName(existingState.categories, c.existing[field])
+    const im = categoryName(payload.categories, c.imported[field])
+    return en !== im
+  }
+  return valuesDiffer(c.existing[field], c.imported[field])
+}
+
+function hasDiffFields(c, payload, existingState) {
+  return MEANINGFUL_ITEM_FIELDS.some(field => fieldDiffers(c, field, payload, existingState))
+}
+
+function autoChoice(existing, imported, field) {
+  const hasExisting = isFilled(existing[field])
+  const hasImported = isFilled(imported[field])
+  if (hasImported && !hasExisting) return 'imported'
+  return 'existing'
+}
+
 export function ImportConflictReview({ payload, existingState, onConfirm, onCancel }) {
   useBackClose(true, onCancel)
 
   const [conflicts] = useState(() => detectConflicts(payload, existingState))
   const [decisions, setDecisions] = useState(() => {
     const d = { items: {}, kits: {}, sacs: {} }
-    for (const c of conflicts.items) d.items[c.index] = { action: DUPLICATE }
+    for (const c of conflicts.items) {
+      const fields = {}
+      for (const field of MEANINGFUL_ITEM_FIELDS) fields[field] = autoChoice(c.existing, c.imported, field)
+      d.items[c.index] = { action: DUPLICATE, fields }
+    }
     for (const c of conflicts.kits) d.kits[c.index] = { action: DUPLICATE }
     for (const c of conflicts.sacs) d.sacs[c.index] = { action: DUPLICATE }
     return d
@@ -124,6 +191,23 @@ export function ImportConflictReview({ payload, existingState, onConfirm, onCanc
     setDecisions(prev => {
       const current = prev[type][index] || {}
       const next = { ...prev, [type]: { ...prev[type], [index]: { ...current, action } } }
+      return next
+    })
+  }
+
+  const setAllActions = (action) => {
+    setDecisions(prev => {
+      const next = { items: {}, kits: {}, sacs: {} }
+      for (const c of conflicts.items) {
+        const existing = prev.items[c.index] || {}
+        next.items[c.index] = { ...existing, fields: existing.fields || {}, action }
+      }
+      for (const c of conflicts.kits) {
+        next.kits[c.index] = { ...(prev.kits[c.index] || {}), action }
+      }
+      for (const c of conflicts.sacs) {
+        next.sacs[c.index] = { ...(prev.sacs[c.index] || {}), action }
+      }
       return next
     })
   }
@@ -156,7 +240,9 @@ export function ImportConflictReview({ payload, existingState, onConfirm, onCanc
         </div>
         <div style={s.actionsRow}>
           <div style={s.actions}>
-            {[DUPLICATE, MERGE, SKIP].map(a => (
+            {[DUPLICATE, MERGE, SKIP]
+              .filter(a => a !== MERGE || hasDiffFields(c, payload, existingState))
+              .map(a => (
               <div
                 key={`${a}-${action === a}`}
                 className="icr-btn"
@@ -170,26 +256,41 @@ export function ImportConflictReview({ payload, existingState, onConfirm, onCanc
         </div>
         {isMerge && (
           <div style={s.fieldList}>
-            {MEANINGFUL_ITEM_FIELDS.map(field => (
-              <div key={field} style={s.fieldRow}>
-                <span style={s.fieldLabel}>{ITEM_FIELD_LABELS[field] || field}</span>
-                <div style={s.fieldToggle}>
-                  {['existing', 'imported'].map(choice => (
-                    <div
-                      key={`${choice}-${(fields[field] || 'existing') === choice}`}
-                      className="icr-btn"
-                      style={{
-                        ...s.fieldChoice,
-                        ...((fields[field] || 'existing') === choice ? s.fieldChoiceActive : {}),
-                      }}
-                      onClick={() => setField(c.index, field, choice)}
-                    >
-                      {choice === 'existing' ? 'Existant' : 'Importé'}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {MEANINGFUL_ITEM_FIELDS
+              .filter(field => fieldDiffers(c, field, payload, existingState))
+              .map(field => {
+                const choice = fields[field] || autoChoice(c.existing, c.imported, field)
+                return (
+                  <div key={field} style={s.fieldItem}>
+                    <div style={s.fieldTitle}>{ITEM_FIELD_LABELS[field] || field}</div>
+                    {['existing', 'imported'].map(choiceKey => {
+                      const active = choice === choiceKey
+                      const existingValue = formatValue(field, c.existing[field], existingState.categories)
+                      const importedValue = formatValue(field, c.imported[field], payload.categories)
+                      const value = choiceKey === 'existing' ? existingValue : importedValue
+                      const isEmpty = choiceKey === 'existing'
+                        ? !isFilled(c.existing[field])
+                        : !isFilled(c.imported[field])
+                      return (
+                        <div
+                          key={`${choiceKey}-${active}`}
+                          style={{ ...s.optRow, ...(active ? s.optRowSelected : {}) }}
+                        >
+                          <span style={s.optSource}>{choiceKey === 'existing' ? 'Existant' : 'Importé'}</span>
+                          <div
+                            className="icr-btn"
+                            style={{ ...s.fieldChoice, ...(active ? s.fieldChoiceActive : {}) }}
+                            onClick={() => setField(c.index, field, choiceKey)}
+                          >
+                            {choiceKey === 'existing' ? 'Existant' : 'Importé'}
+                          </div>
+                          <span style={{ ...s.optValue, ...(isEmpty ? s.optValueEmpty : {}) }}>{value}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
           </div>
         )}
       </div>
@@ -264,6 +365,10 @@ export function ImportConflictReview({ payload, existingState, onConfirm, onCanc
         <div style={s.title}>Conflits détectés</div>
         <div style={s.message}>
           Certaines ressources existent déjà dans votre inventaire. Choisissez quoi en faire avant l'import.
+        </div>
+        <div style={s.bulkBar}>
+          <button style={s.bulkBtn} onClick={() => setAllActions(DUPLICATE)}>Tout dupliquer</button>
+          <button style={s.bulkBtn} onClick={() => setAllActions(SKIP)}>Tout ignorer</button>
         </div>
         <div style={s.list}>
           {conflicts.items.length > 0 && (
