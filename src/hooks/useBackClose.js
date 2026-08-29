@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react'
+import { useLockBodyScroll } from './useLockBodyScroll'
 
 export function useBackClose(open, onClose) {
   const ref = useRef(onClose)
+
+  useLockBodyScroll(Boolean(open))
 
   useEffect(() => {
     ref.current = onClose

@@ -308,6 +308,7 @@ export function GearProvider({ children }) {
     setItems(result.items)
     setKits(result.kits)
     setSacs(result.sacs)
+    return result.summary
   }, [items, categories, kits, sacs, setItems, setCategories, setKits, setSacs])
 
   const importData = useCallback(async (file, decisions) => {

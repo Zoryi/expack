@@ -1,11 +1,13 @@
 import { useMemo, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useGear } from '../../hooks/useGear'
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll'
 import { Icon } from '../../components/Icon/Icon'
 import { CONDITION_LABELS, CONDITION_COLORS, CONDITION_ORDER } from '../../models/item'
 import { Modal } from '../../components/Modal/Modal'
 import { QRScanner } from '../../components/QRScanner/QRScanner'
 import { ImportConflictReview } from '../../components/ImportConflictReview/ImportConflictReview'
+import { ImportRecap } from '../../components/ImportRecap/ImportRecap'
 import { detectConflicts, hasConflicts } from '../../utils/importConflicts'
 
 const s = {
@@ -58,7 +60,10 @@ export function StatsPage() {
   const [importError, setImportError] = useState(null)
   const [exporting, setExporting] = useState(false)
   const [pendingSharePayload, setPendingSharePayload] = useState(null)
+  const [importSummary, setImportSummary] = useState(null)
   const fileInputRef = useRef(null)
+
+  useLockBodyScroll(showImportSheet)
 
   const stats = useMemo(() => {
     const totalItems = items.reduce((s, i) => s + i.quantity, 0)
@@ -123,7 +128,7 @@ export function StatsPage() {
       if (hasConflicts(found)) {
         setPendingSharePayload(data)
       } else {
-        importSharedData(data)
+        setImportSummary(importSharedData(data))
       }
     } catch (err) {
       setImportError(err.message)
@@ -316,7 +321,7 @@ export function StatsPage() {
           categories={categories}
           kits={kits}
           sacs={sacs}
-          onImport={(payload, decisions) => importSharedData(payload, decisions)}
+          onImport={(payload, decisions) => setImportSummary(importSharedData(payload, decisions))}
           onClose={() => setShowScanner(false)}
         />
       )}
@@ -326,10 +331,17 @@ export function StatsPage() {
           payload={pendingSharePayload}
           existingState={{ items, categories, kits, sacs }}
           onConfirm={(decisions) => {
-            importSharedData(pendingSharePayload, decisions)
+            setImportSummary(importSharedData(pendingSharePayload, decisions))
             setPendingSharePayload(null)
           }}
           onCancel={() => setPendingSharePayload(null)}
+        />
+      )}
+
+      {importSummary && (
+        <ImportRecap
+          summary={importSummary}
+          onClose={() => setImportSummary(null)}
         />
       )}
 

@@ -67,6 +67,49 @@ function normalize(str) {
   return (str || '').trim().toLowerCase()
 }
 
+const FUZZY_THRESHOLD = 0.9
+
+function bigrams(str) {
+  const s = normalize(str)
+  const grams = new Set()
+  if (s.length === 1) return new Set([s])
+  for (let i = 0; i < s.length - 1; i++) grams.add(s.slice(i, i + 2))
+  return grams
+}
+
+function diceCoefficient(a, b) {
+  const ga = bigrams(a)
+  const gb = bigrams(b)
+  if (ga.size === 0 && gb.size === 0) return 1
+  if (ga.size === 0 || gb.size === 0) return 0
+  let inter = 0
+  for (const g of ga) if (gb.has(g)) inter++
+  return (2 * inter) / (ga.size + gb.size)
+}
+
+function nameSimilarity(a, b) {
+  const na = normalize(a)
+  const nb = normalize(b)
+  if (na === nb) return 2
+  const dice = diceCoefficient(na, nb)
+  return dice >= FUZZY_THRESHOLD ? dice : 0
+}
+
+function collectItemCandidates(imported, existingState) {
+  const exact = []
+  for (const it of existingState.items) {
+    if (normalize(it.name) !== normalize(imported.name)) continue
+    exact.push(it)
+  }
+  if (exact.length > 0) return { candidates: exact, matchType: 'exact' }
+
+  const fuzzy = []
+  for (const it of existingState.items) {
+    if (nameSimilarity(imported.name, it.name) >= FUZZY_THRESHOLD) fuzzy.push(it)
+  }
+  return { candidates: fuzzy, matchType: fuzzy.length > 0 ? 'fuzzy' : 'exact' }
+}
+
 function isFilled(value) {
   return value !== undefined && value !== null && value !== ''
 }
@@ -113,31 +156,11 @@ function scoreSimilarity(existing, imported, existingState, payload) {
 }
 
 export function detectConflicts(payload, existingState) {
-  const existingCategoriesByName = {}
-  for (const cat of existingState.categories) {
-    existingCategoriesByName[normalize(cat.name)] = cat
-  }
-
-  const resolutionForCategory = (categoryId, payload) => {
-    const cat = payload.categories.find(c => c.id === categoryId)
-    if (!cat) return null
-    return existingCategoriesByName[normalize(cat.name)] || null
-  }
-
   const items = []
   for (let i = 0; i < payload.items.length; i++) {
     const imported = payload.items[i]
-    const existingCat = resolutionForCategory(imported.categoryId, payload)
 
-    const candidates = []
-    for (const it of existingState.items) {
-      if (normalize(it.name) !== normalize(imported.name)) continue
-      const sameCategory = existingCat && it.categoryId === existingCat.id
-      const nameMatch = !sameCategory
-      if (sameCategory || nameMatch) {
-        candidates.push(it)
-      }
-    }
+    const { candidates, matchType } = collectItemCandidates(imported, existingState)
 
     if (candidates.length === 0) continue
 
@@ -150,6 +173,7 @@ export function detectConflicts(payload, existingState) {
       imported,
       candidates: ranked,
       selectedExistingId: ranked[0].existing.id,
+      matchType,
     })
   }
 
@@ -283,6 +307,8 @@ export function applyImport(payload, existingState, decisions = {}) {
   const existingItemIds = new Set(existingState.items.map(i => i.id))
   const itemIdMap = {}
 
+  const summary = { duplicated: 0, merged: 0, skipped: 0, items: [], kits: [], sacs: [] }
+
   const itemConflictByIndex = {}
   for (const c of detectConflicts(payload, existingState).items) {
     itemConflictByIndex[c.index] = c
@@ -299,6 +325,8 @@ export function applyImport(payload, existingState, decisions = {}) {
     const target = resolveChosenExisting(conflict, decision)
 
     if (action === SKIP) {
+      summary.skipped++
+      summary.items.push({ name: imported.name, action })
       itemIdMap[imported.id] = target ? target.id : imported.id
       continue
     }
@@ -311,12 +339,15 @@ export function applyImport(payload, existingState, decisions = {}) {
       if (idx >= 0) finalItems[idx] = merged
       else finalItems.push(merged)
       itemIdMap[imported.id] = merged.id
+      summary.merged++
     } else {
       const newId = existingItemIds.has(imported.id) ? generateId('itm') : imported.id
       finalItems.push({ ...imported, id: newId, categoryId })
       existingItemIds.add(newId)
       itemIdMap[imported.id] = newId
+      summary.duplicated++
     }
+    summary.items.push({ name: imported.name, action: action === MERGE ? MERGE : DUPLICATE })
   }
 
   const finalKits = [...existingState.kits]
@@ -329,6 +360,8 @@ export function applyImport(payload, existingState, decisions = {}) {
     const action = decisionAction(decisions.kits[i])
 
     if (action === SKIP) {
+      summary.skipped++
+      summary.kits.push({ name: imported.name, action })
       kitIdMap[imported.id] = conflict ? conflict.existing.id : imported.id
       continue
     }
@@ -344,6 +377,7 @@ export function applyImport(payload, existingState, decisions = {}) {
       if (idx >= 0) finalKits[idx] = merged
       else finalKits.push(merged)
       kitIdMap[imported.id] = merged.id
+      summary.merged++
     } else {
       const newId = existingKitIds.has(imported.id) ? generateId('kit') : imported.id
       finalKits.push({
@@ -359,7 +393,9 @@ export function applyImport(payload, existingState, decisions = {}) {
       })
       existingKitIds.add(newId)
       kitIdMap[imported.id] = newId
+      summary.duplicated++
     }
+    summary.kits.push({ name: imported.name, action: action === MERGE ? MERGE : DUPLICATE })
   }
 
   const finalSacs = [...existingState.sacs]
@@ -370,13 +406,18 @@ export function applyImport(payload, existingState, decisions = {}) {
     const conflict = detectConflictByName(payload.sacs, existingState.sacs, imported, i)
     const action = decisionAction(decisions.sacs[i])
 
-    if (action === SKIP) continue
+    if (action === SKIP) {
+      summary.skipped++
+      summary.sacs.push({ name: imported.name, action })
+      continue
+    }
 
     if (action === MERGE && conflict) {
       const merged = mergeSacReferences(conflict.existing, imported, itemIdMap, kitIdMap)
       const idx = finalSacs.findIndex(s => s.id === conflict.existing.id)
       if (idx >= 0) finalSacs[idx] = merged
       else finalSacs.push(merged)
+      summary.merged++
     } else {
       const newId = existingSacIds.has(imported.id) ? generateId('sac') : imported.id
       finalSacs.push({
@@ -389,10 +430,12 @@ export function applyImport(payload, existingState, decisions = {}) {
         })),
       })
       existingSacIds.add(newId)
+      summary.duplicated++
     }
+    summary.sacs.push({ name: imported.name, action: action === MERGE ? MERGE : DUPLICATE })
   }
 
-  return { items: finalItems, categories: finalCategories, kits: finalKits, sacs: finalSacs }
+  return { items: finalItems, categories: finalCategories, kits: finalKits, sacs: finalSacs, summary }
 }
 
 function detectConflictByName(importedList, existingList, imported, index) {

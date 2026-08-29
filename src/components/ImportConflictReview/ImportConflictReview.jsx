@@ -103,7 +103,16 @@ const s = {
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   candCheck: { color: 'var(--color-primary)', fontWeight: 700 },
+  fuzzyHint: {
+    display: 'inline-block', fontSize: '10px', fontWeight: 700,
+    color: 'var(--color-primary)', marginLeft: '8px', flexShrink: 0,
+  },
   bulkBar: { display: 'flex', gap: '8px', marginBottom: '12px' },
+  countBadge: {
+    display: 'inline-block', marginLeft: '8px', padding: '2px 8px',
+    borderRadius: '999px', background: 'var(--color-primary)', color: 'white',
+    fontSize: '11px', fontWeight: 700,
+  },
   bulkBtn: {
     flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-md)',
     border: '1px solid var(--color-border)', background: 'transparent',
@@ -152,7 +161,7 @@ function formatValue(field, value, categories) {
 
 function valuesDiffer(a, b) {
   if (!isFilled(a) && !isFilled(b)) return false
-  return String(a ?? '') !== String(b ?? '')
+  return String(a ?? '').trim() !== String(b ?? '').trim()
 }
 
 function fieldDiffers(existing, imported, field, payload, existingState) {
@@ -297,6 +306,7 @@ export function ImportConflictReview({ payload, existingState, onConfirm, onCanc
       <div key={`itm-${c.index}`} style={s.card}>
         <div style={s.cardHeader}>
           <span style={s.name}>{c.imported.name}</span>
+          {c.matchType === 'fuzzy' && <span style={s.fuzzyHint}>~ approchant</span>}
         </div>
         {c.candidates.length > 1 && (
           <div style={s.candSection}>
@@ -441,7 +451,10 @@ export function ImportConflictReview({ payload, existingState, onConfirm, onCanc
   return (
     <div style={s.overlay} onClick={onCancel} role="dialog" aria-modal="true">
       <div style={s.modal} onClick={e => e.stopPropagation()}>
-        <div style={s.title}>Conflits détectés</div>
+        <div style={s.title}>
+          Conflits détectés
+          <span style={s.countBadge}>{conflicts.items.length + conflicts.kits.length + conflicts.sacs.length}</span>
+        </div>
         <div style={s.message}>
           Certaines ressources existent déjà dans votre inventaire. Choisissez quoi en faire avant l'import.
         </div>
