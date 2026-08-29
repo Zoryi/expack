@@ -6,6 +6,8 @@ import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning'
 import { useBackClose } from '../../hooks/useBackClose'
 import { Icon } from '../Icon/Icon'
 import { decompressFromQr, getFocalInfo } from '../../utils/share'
+import { detectConflicts, hasConflicts } from '../../utils/importConflicts'
+import { ImportConflictReview } from '../ImportConflictReview/ImportConflictReview'
 
 const s = {
   overlay: {
@@ -98,7 +100,7 @@ const TYPE_LABELS = { item: 'Article', kit: 'Kit', sac: 'Sac' }
 
 const SCANNER_ELEMENT_ID = 'qr-scanner-live'
 
-export function QRScanner({ onImport, onClose }) {
+export function QRScanner({ onImport, onClose, items = [], categories = [], kits = [], sacs = [] }) {
   useBackClose(true, onClose)
   const initialPlatformState = Capacitor.isNativePlatform() ? 'scanning' : 'web-input'
   const [state, setState] = useState(initialPlatformState)
@@ -108,6 +110,8 @@ export function QRScanner({ onImport, onClose }) {
   const [webInput, setWebInput] = useState('')
   const inputRef = useRef(null)
   const scannerRef = useRef(null)
+
+  const existingState = { items, categories, kits, sacs }
 
   const processResult = useCallback((rawValue) => {
     try {
@@ -120,11 +124,17 @@ export function QRScanner({ onImport, onClose }) {
       const info = getFocalInfo(data)
       setFocalInfo(info)
       setPayload(data)
-      setState('preview')
+      const found = detectConflicts(data, existingState)
+      if (hasConflicts(found)) {
+        setState('conflicts')
+      } else {
+        setState('preview')
+      }
     } catch {
       setError('Impossible de décoder ce QR code')
       setState('error')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const stopScanner = useCallback(async () => {
@@ -246,7 +256,12 @@ export function QRScanner({ onImport, onClose }) {
   }, [state, processResult, stopScanner, ensureCameraPermission])
 
   const handleImport = useCallback(() => {
-    if (payload && onImport) onImport(payload)
+    if (payload && onImport) onImport(payload, undefined)
+    onClose?.()
+  }, [payload, onImport, onClose])
+
+  const handleConflictImport = useCallback((decisions) => {
+    if (payload && onImport) onImport(payload, decisions)
     onClose?.()
   }, [payload, onImport, onClose])
 
@@ -362,6 +377,17 @@ export function QRScanner({ onImport, onClose }) {
           </div>
         </div>
       </div>
+    )
+  }
+
+  if (state === 'conflicts' && payload) {
+    return (
+      <ImportConflictReview
+        payload={payload}
+        existingState={existingState}
+        onConfirm={handleConflictImport}
+        onCancel={handleClose}
+      />
     )
   }
 

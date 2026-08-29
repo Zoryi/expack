@@ -5,6 +5,8 @@ import { Icon } from '../../components/Icon/Icon'
 import { CONDITION_LABELS, CONDITION_COLORS, CONDITION_ORDER } from '../../models/item'
 import { Modal } from '../../components/Modal/Modal'
 import { QRScanner } from '../../components/QRScanner/QRScanner'
+import { ImportConflictReview } from '../../components/ImportConflictReview/ImportConflictReview'
+import { detectConflicts, hasConflicts } from '../../utils/importConflicts'
 
 const s = {
   container: { padding: '24px 16px', animation: 'fadeIn 400ms ease', paddingBottom: '32px' },
@@ -47,7 +49,7 @@ const s = {
 }
 
 export function StatsPage() {
-  const { items, categories, kits, sacs, clearAllData, generateTestData, exportData, importData, importSharedData } = useGear()
+  const { items, categories, kits, sacs, clearAllData, generateTestData, exportData, importSharedData } = useGear()
 
   const [showClearModal, setShowClearModal] = useState(false)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
@@ -55,6 +57,7 @@ export function StatsPage() {
   const [showScanner, setShowScanner] = useState(false)
   const [importError, setImportError] = useState(null)
   const [exporting, setExporting] = useState(false)
+  const [pendingSharePayload, setPendingSharePayload] = useState(null)
   const fileInputRef = useRef(null)
 
   const stats = useMemo(() => {
@@ -109,7 +112,19 @@ export function StatsPage() {
     if (!file) return
     try {
       setImportError(null)
-      await importData(file)
+      const text = await file.text()
+      const data = JSON.parse(text)
+
+      if (!data.version || !Array.isArray(data.items) || !Array.isArray(data.categories) || !Array.isArray(data.kits) || !Array.isArray(data.sacs)) {
+        throw new Error('Format de fichier invalide')
+      }
+
+      const found = detectConflicts(data, { items, categories, kits, sacs })
+      if (hasConflicts(found)) {
+        setPendingSharePayload(data)
+      } else {
+        importSharedData(data)
+      }
     } catch (err) {
       setImportError(err.message)
     }
@@ -297,8 +312,24 @@ export function StatsPage() {
 
       {showScanner && (
         <QRScanner
-          onImport={(payload) => importSharedData(payload)}
+          items={items}
+          categories={categories}
+          kits={kits}
+          sacs={sacs}
+          onImport={(payload, decisions) => importSharedData(payload, decisions)}
           onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {pendingSharePayload && (
+        <ImportConflictReview
+          payload={pendingSharePayload}
+          existingState={{ items, categories, kits, sacs }}
+          onConfirm={(decisions) => {
+            importSharedData(pendingSharePayload, decisions)
+            setPendingSharePayload(null)
+          }}
+          onCancel={() => setPendingSharePayload(null)}
         />
       )}
 
