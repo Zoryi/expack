@@ -4,6 +4,8 @@ import { Header } from '../../components/Header/Header'
 import { Icon } from '../../components/Icon/Icon'
 import { Modal } from '../../components/Modal/Modal'
 import { QRCodeModal } from '../../components/QRCodeModal/QRCodeModal'
+import { ItemCard, ItemCardRightWeight } from '../../components/ItemCard/ItemCard'
+import { CategoryHeader } from '../../components/CategoryHeader/CategoryHeader'
 import { useGear } from '../../hooks/useGear'
 import { getKitTotalWeight } from '../../models/kit'
 import { prepareSharePayload, safeCompressForQr, getFocalInfo } from '../../utils/share'
@@ -21,12 +23,6 @@ const s = {
   statNum: { fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' },
   statLabel: { fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px' },
   sectionHeader: { fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-text-secondary)', marginBottom: '8px', marginTop: '4px' },
-  itemsList: { marginBottom: '16px' },
-  itemRow: { display: 'flex', alignItems: 'center', padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', marginBottom: '3px', fontSize: 'var(--text-sm)' },
-  itemName: { flex: 1, color: 'var(--color-text)', fontWeight: 500 },
-  itemRight: { display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 },
-  badge: { padding: '2px 6px', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg)', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)' },
-  weight: { fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' },
   subKitSection: { marginBottom: '16px' },
   subKitHeader: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', marginBottom: '3px', cursor: 'pointer', fontSize: 'var(--text-sm)', fontWeight: 600, transition: 'background var(--transition-fast)' },
   subKitName: { flex: 1, color: 'var(--color-text)' },
@@ -83,6 +79,32 @@ export function KitDetail() {
   }
 
   const directItems = kit.itemEntries.map(e => ({ ...e, item: items.find(i => i.id === e.itemId) })).filter(e => e.item)
+
+  const groupedDirectItems = (() => {
+    const order = new Map([...categories].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })).map((c, i) => [c.id, i]))
+    const map = {}
+    const groupOrder = []
+    for (const e of directItems) {
+      const catId = e.item.categoryId
+      if (!(catId in map)) { map[catId] = []; groupOrder.push(catId) }
+      map[catId].push(e)
+    }
+    groupOrder.sort((a, b) => {
+      const ia = order.get(a) ?? Number.MAX_SAFE_INTEGER
+      const ib = order.get(b) ?? Number.MAX_SAFE_INTEGER
+      if (ia !== ib) return ia - ib
+      return (a ?? '').localeCompare(b ?? '', 'fr', { sensitivity: 'base' })
+    })
+    return groupOrder.map(catId => {
+      const cat = categories.find(c => c.id === catId)
+      const entries = [...map[catId]].sort((x, y) =>
+        x.item.name.localeCompare(y.item.name, 'fr', { sensitivity: 'base' }) ||
+        (x.item.brand ?? '').localeCompare(y.item.brand ?? '', 'fr', { sensitivity: 'base' }) ||
+        (x.item.model ?? '').localeCompare(y.item.model ?? '', 'fr', { sensitivity: 'base' })
+      )
+      return { catId, icon: cat?.icon || 'package', name: cat?.name || 'Sans catégorie', entries }
+    })
+  })()
 
   const totalWeight = getKitTotalWeight(id, kits, items).weight
 
@@ -165,18 +187,22 @@ export function KitDetail() {
         </div>
 
         <div style={s.sectionHeader}>Articles ({directItems.length})</div>
-        <div style={s.itemsList}>
-          {directItems.map(({ item, quantity }) => (
-            <div key={item.id} style={s.itemRow}>
-              <span style={s.itemName}>{item.name}</span>
-              <div style={s.itemRight}>
-                {quantity > 1 && <span style={s.badge}>×{quantity}</span>}
-                <span style={s.weight}>{(item.weight || 0) * quantity}g</span>
-              </div>
-            </div>
-          ))}
-          {directItems.length === 0 && <div style={s.emptyText}>Aucun article direct</div>}
-        </div>
+        {groupedDirectItems.map(group => (
+          <div key={group.catId} style={{ marginBottom: '12px' }}>
+            <CategoryHeader icon={group.icon} name={group.name} count={group.entries.length} />
+            {group.entries.map(({ item, quantity }) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                to={`/items/${item.id}`}
+                showConsumable
+                showFavorite
+                rightSlot={<ItemCardRightWeight weight={item.weight} qty={quantity} />}
+              />
+            ))}
+          </div>
+        ))}
+        {directItems.length === 0 && <div style={s.emptyText}>Aucun article direct</div>}
 
         {kit.subKitEntries.length > 0 && (
           <>

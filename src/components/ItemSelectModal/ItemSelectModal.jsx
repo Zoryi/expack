@@ -1,6 +1,9 @@
 import { useState, useMemo } from 'react'
 import { KitRow } from '../KitRow/KitRow'
 import { SearchBar } from '../SearchBar/SearchBar'
+import { ItemCard, ItemCardWeight } from '../ItemCard/ItemCard'
+import { CategoryHeader } from '../CategoryHeader/CategoryHeader'
+import { groupItemsByCategory } from '../../utils/groupItemsByCategory'
 import { useBackClose } from '../../hooks/useBackClose'
 
 const s = {
@@ -62,7 +65,10 @@ const s = {
     width: '20px',
     height: '20px',
     borderRadius: '4px',
-    border: '2px solid var(--color-border)',
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: 'var(--color-border)',
+    backgroundColor: 'var(--color-bg)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -71,23 +77,12 @@ const s = {
     fontWeight: 700,
   },
   itemCheckSelected: {
-    background: 'var(--color-primary)',
-    border: '2px solid var(--color-primary)',
+    backgroundColor: 'var(--color-primary)',
+    borderColor: 'var(--color-primary)',
     color: 'white',
   },
-  itemInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  itemName: {
-    fontSize: 'var(--text-sm)',
-    fontWeight: 600,
-    color: 'var(--color-text)',
-  },
-  itemMeta: {
-    fontSize: '11px',
-    color: 'var(--color-text-secondary)',
-    marginTop: '2px',
+  group: {
+    marginBottom: '8px',
   },
   footer: {
     padding: '16px',
@@ -108,17 +103,25 @@ const s = {
   },
 }
 
-export function ItemSelectModal({ items, onConfirm, onCancel, title = 'Sélectionner', selectedIds = [] }) {
+export function ItemSelectModal({ items, categories = [], onConfirm, onCancel, title = 'Sélectionner', selectedIds = [] }) {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(new Set(selectedIds))
 
   useBackClose(true, onCancel)
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return items
+    const all = items || []
+    if (!search.trim()) {
+      return { articleItems: all.filter(i => i.categoryId != null), kitItems: all.filter(i => i.categoryId == null) }
+    }
     const q = search.toLowerCase()
-    return items.filter(i => i.name.toLowerCase().includes(q))
+    return {
+      articleItems: all.filter(i => i.categoryId != null && i.name.toLowerCase().includes(q)),
+      kitItems: all.filter(i => i.categoryId == null && i.name.toLowerCase().includes(q)),
+    }
   }, [items, search])
+
+  const grouped = useMemo(() => groupItemsByCategory(filtered.articleItems, categories), [filtered.articleItems, categories])
 
   const toggle = (id) => {
     setSelected(prev => {
@@ -128,6 +131,8 @@ export function ItemSelectModal({ items, onConfirm, onCancel, title = 'Sélectio
       return next
     })
   }
+
+  const totalCount = grouped.reduce((n, g) => n + g.items.length, 0) + filtered.kitItems.length
 
   return (
     <div style={s.overlay} role="dialog" aria-modal="true">
@@ -141,33 +146,55 @@ export function ItemSelectModal({ items, onConfirm, onCancel, title = 'Sélectio
       </div>
 
       <div style={s.list}>
-        {filtered.map(item => {
-          const isSelected = selected.has(item.id)
-          return (
-            <div
-              key={item.id}
-              style={{ ...s.item, ...(isSelected ? s.itemSelected : {}) }}
-              onClick={() => toggle(item.id)}
-              role="checkbox"
-              aria-checked={isSelected}
-            >
-              <div style={{ ...s.itemCheck, ...(isSelected ? s.itemCheckSelected : {}) }}>
-                {isSelected ? '✓' : ''}
-              </div>
-              {item.icon ? (
-                <KitRow icon={item.icon} name={item.name} weight={item.weight || 0} itemCount={item.itemCount || 0} />
-              ) : (
-                <div style={s.itemInfo}>
-                  <div style={s.itemName}>{item.name}</div>
-                  <div style={s.itemMeta}>
-                    {item.weight ? `${item.weight}g` : '—'} · {item.brand || 'Sans marque'}
+        {grouped.map(group => (
+          <div key={group.catId} style={s.group}>
+            <CategoryHeader icon={group.icon} name={group.name} count={group.items.length} />
+            {group.items.map(item => {
+              const isSelected = selected.has(item.id)
+              return (
+                <ItemCard
+                  key={`${item.id}-${isSelected}`}
+                  item={item}
+                  onClick={() => toggle(item.id)}
+                  style={{ ...(isSelected ? { borderColor: 'var(--color-primary)' } : {}) }}
+                  showConsumable
+                  showFavorite
+                  leading={(
+                    <div style={{ ...s.itemCheck, ...(isSelected ? s.itemCheckSelected : {}) }}>
+                      {isSelected ? '✓' : ''}
+                    </div>
+                  )}
+                  rightSlot={<ItemCardWeight weight={item.weight} />}
+                />
+              )
+            })}
+          </div>
+        ))}
+
+        {filtered.kitItems.length > 0 && (
+          <div style={s.group}>
+            <CategoryHeader icon="package" name="Kits" count={filtered.kitItems.length} />
+            {filtered.kitItems.map(item => {
+              const isSelected = selected.has(item.id)
+              return (
+                <div
+                  key={`${item.id}-${isSelected}`}
+                  style={{ ...s.item, ...(isSelected ? s.itemSelected : {}) }}
+                  onClick={() => toggle(item.id)}
+                  role="checkbox"
+                  aria-checked={isSelected}
+                >
+                  <div style={{ ...s.itemCheck, ...(isSelected ? s.itemCheckSelected : {}) }}>
+                    {isSelected ? '✓' : ''}
                   </div>
+                  <KitRow icon={item.icon} name={item.name} weight={item.weight || 0} itemCount={item.itemCount || 0} />
                 </div>
-              )}
-            </div>
-          )
-        })}
-        {filtered.length === 0 && (
+              )
+            })}
+          </div>
+        )}
+
+        {totalCount === 0 && (
           <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
             Aucun article trouvé
           </div>

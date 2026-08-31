@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle'
 import { Icon } from '../../components/Icon/Icon'
+import { ItemCard, ItemCardWeight } from '../../components/ItemCard/ItemCard'
 import { useGear } from '../../hooks/useGear'
 import { CONDITION_LABELS, CONDITION_COLORS, CONDITION_ORDER } from '../../models/item'
 
@@ -120,18 +121,6 @@ const s = {
     textDecoration: 'none',
     transition: 'border-color var(--transition-fast)',
   },
-  recentName: {
-    fontSize: 'var(--text-sm)',
-    fontWeight: 600,
-    color: 'var(--color-text)',
-    flex: 1,
-  },
-  recentWeight: {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: 'var(--color-text-secondary)',
-    fontVariantNumeric: 'tabular-nums',
-  },
   conditionBar: {
     display: 'flex',
     gap: '4px',
@@ -228,10 +217,14 @@ export function Home() {
           <Link to="/inventory" style={s.sectionLink}>Voir tout</Link>
         </div>
         {recentItems.map(item => (
-          <Link key={item.id} to={`/items/${item.id}`} style={s.recentItem}>
-            <div style={s.recentName}>{item.name}</div>
-            <div style={s.recentWeight}>{item.weight ? `${item.weight}g` : '—'}</div>
-          </Link>
+          <ItemCard
+            key={item.id}
+            item={item}
+            to={`/items/${item.id}`}
+            compact
+            style={s.recentItem}
+            rightSlot={<ItemCardWeight weight={item.weight} compact />}
+          />
         ))}
         {recentItems.length === 0 && (
           <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>

@@ -4,6 +4,8 @@ import { Header } from '../../components/Header/Header'
 import { KitRow } from '../../components/KitRow/KitRow'
 import { Modal } from '../../components/Modal/Modal'
 import { ItemSelectModal } from '../../components/ItemSelectModal/ItemSelectModal'
+import { ItemCard } from '../../components/ItemCard/ItemCard'
+import { CategoryHeader } from '../../components/CategoryHeader/CategoryHeader'
 import { useGear } from '../../hooks/useGear'
 import { TRIP_TYPES, TRIP_TYPE_LABELS } from '../../models/sac'
 import { getKitTotalWeight } from '../../models/kit'
@@ -39,7 +41,7 @@ export function SacForm() {
 function SacFormInner({ existingSac }) {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { items, kits, addSac, updateSac, deleteSac } = useGear()
+  const { items, kits, categories, addSac, updateSac, deleteSac } = useGear()
   const isEditing = Boolean(id)
 
   const [form, setForm] = useState({
@@ -77,6 +79,35 @@ function SacFormInner({ existingSac }) {
     }
     return w
   }, [entryItems, entryKits, items, kits])
+
+  const groupedEntryItems = useMemo(() => {
+    const withItems = entryItems
+      .map(id => items.find(i => i.id === id))
+      .filter(Boolean)
+    const order = new Map([...categories].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })).map((c, i) => [c.id, i]))
+    const map = {}
+    const groupOrder = []
+    for (const it of withItems) {
+      const catId = it.categoryId
+      if (!(catId in map)) { map[catId] = []; groupOrder.push(catId) }
+      map[catId].push(it)
+    }
+    groupOrder.sort((a, b) => {
+      const ia = order.get(a) ?? Number.MAX_SAFE_INTEGER
+      const ib = order.get(b) ?? Number.MAX_SAFE_INTEGER
+      if (ia !== ib) return ia - ib
+      return (a ?? '').localeCompare(b ?? '', 'fr', { sensitivity: 'base' })
+    })
+    return groupOrder.map(catId => {
+      const cat = categories.find(c => c.id === catId)
+      const itemsInCat = [...map[catId]].sort((x, y) =>
+        x.name.localeCompare(y.name, 'fr', { sensitivity: 'base' }) ||
+        (x.brand ?? '').localeCompare(y.brand ?? '', 'fr', { sensitivity: 'base' }) ||
+        (x.model ?? '').localeCompare(y.model ?? '', 'fr', { sensitivity: 'base' })
+      )
+      return { catId, icon: cat?.icon || 'package', name: cat?.name || 'Sans catégorie', items: itemsInCat }
+    })
+  }, [entryItems, items, categories])
 
   const handleAddItems = (selectedIds) => {
     setEntryItems(prev => {
@@ -155,21 +186,20 @@ function SacFormInner({ existingSac }) {
           <div style={s.sectionTitle}>Contenu du sac</div>
 
           {entryItems.length > 0 && (
-            <>
-              <div style={s.sectionTitle} style={{ ...s.sectionTitle, marginBottom: '4px', fontSize: '10px' }}>Articles directs</div>
-              <div style={s.entryList}>
-                {entryItems.map(eid => {
-                  const item = items.find(i => i.id === eid)
-                  return (
-                    <div key={eid} style={s.entryRow}>
-                      <span style={s.entryName}>{item?.name || 'Inconnu'}</span>
-                      <span style={s.entryMeta}>{item?.weight ? `${item.weight}g` : ''}</span>
-                      <button style={s.removeBtn} onClick={() => setEntryItems(prev => prev.filter(id => id !== eid))}>✕</button>
+            groupedEntryItems.map(group => (
+              <div key={group.catId} style={{ marginBottom: '12px' }}>
+                <CategoryHeader icon={group.icon} name={group.name} count={group.items.length} />
+                <div style={s.entryList}>
+                  {group.items.map(item => (
+                    <div key={item.id} style={s.entryRow}>
+                      <ItemCard compact item={item} style={{ flex: 1, minWidth: 0 }} />
+                      <span style={s.entryMeta}>{item.weight ? `${item.weight}g` : ''}</span>
+                      <button style={s.removeBtn} onClick={() => setEntryItems(prev => prev.filter(id => id !== item.id))}>✕</button>
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
-            </>
+            ))
           )}
 
           {entryKits.length > 0 && (
@@ -231,6 +261,7 @@ function SacFormInner({ existingSac }) {
           onConfirm={handleAddItems}
           onCancel={() => setShowItemPicker(false)}
           title="Ajouter des articles"
+          categories={categories}
         />
       )}
 

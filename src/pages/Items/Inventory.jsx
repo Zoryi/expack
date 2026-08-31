@@ -4,6 +4,8 @@ import { SearchBar } from '../../components/SearchBar/SearchBar'
 import { Icon } from '../../components/Icon/Icon'
 import { Badge } from '../../components/Badge/Badge'
 import { EmptyState } from '../../components/EmptyState/EmptyState'
+import { ItemCard, ItemCardRightWeight } from '../../components/ItemCard/ItemCard'
+import { CategoryHeader } from '../../components/CategoryHeader/CategoryHeader'
 import { useGear } from '../../hooks/useGear'
 
 const s = {
@@ -34,74 +36,6 @@ const s = {
   },
   categoryGroup: {
     padding: '0 16px 12px',
-  },
-  categoryTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '8px 0',
-    fontSize: 'var(--text-sm)',
-    fontWeight: 700,
-    color: 'var(--color-text)',
-    borderBottom: '1px solid var(--color-border)',
-    marginBottom: '6px',
-  },
-  item: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '10px',
-    padding: '10px 12px',
-    borderRadius: 'var(--radius-md)',
-    background: 'var(--color-surface)',
-    border: '1px solid var(--color-border)',
-    marginBottom: '4px',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    transition: 'border-color var(--transition-fast)',
-  },
-  itemInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  itemName: {
-    fontSize: 'var(--text-sm)',
-    fontWeight: 600,
-    color: 'var(--color-text)',
-  },
-  itemMeta: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-    marginTop: '2px',
-    fontSize: '11px',
-    color: 'var(--color-text-secondary)',
-  },
-  itemNotes: {
-    marginTop: '2px',
-    fontSize: '11px',
-    color: 'var(--color-text-secondary)',
-    fontStyle: 'italic',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  itemRight: {
-    textAlign: 'right',
-    flexShrink: 0,
-  },
-  itemWeight: {
-    fontSize: 'var(--text-sm)',
-    fontWeight: 700,
-    color: 'var(--color-text)',
-    fontVariantNumeric: 'tabular-nums',
-  },
-  itemQty: {
-    fontSize: '11px',
-    color: 'var(--color-text-secondary)',
-  },
-  favorite: {
-    color: '#f59e0b',
-    fontSize: '14px',
   },
   fab: {
     position: 'fixed',
@@ -236,53 +170,22 @@ export function Inventory() {
         const cat = getCat(catId)
         return (
           <div key={catId} style={s.categoryGroup}>
-            <div style={s.categoryTitle}>
-              <Icon name={cat?.icon || 'package'} size="sm" />
-              <span>{cat?.name || 'Sans catégorie'}</span>
-              <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400, fontSize: '11px' }}>({catItems.length})</span>
-            </div>
-            {catItems.map(item => {
-              const { length, width, depth, volume } = item
-              const dims = [length, width, depth].filter(v => v != null)
-              const dimsStr = dims.length ? `${dims.join(' × ')} cm` : ''
-              const volumeStr = volume != null ? `${volume} L` : ''
-              const dimLine = [dimsStr, volumeStr].filter(Boolean).join(' · ')
-              return (
-              <Link
+            <CategoryHeader
+              icon={cat?.icon || 'package'}
+              name={cat?.name || 'Sans catégorie'}
+              count={catItems.length}
+            />
+            {catItems.map(item => (
+              <ItemCard
                 key={item.id}
+                item={item}
                 to={`/items/${item.id}`}
-                style={s.item}
-              >
-                <div style={s.itemInfo}>
-                  <div style={s.itemName}>
-                    {item.isConsumable && (() => {
-  const icon = item.consumableType === 'water' ? 'droplet'
-    : item.consumableType === 'fuel' ? 'flame'
-    : item.consumableType === 'food' ? 'food'
-    : 'refresh'
-  return <Icon name={icon} size="xs" style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 6 }} />
-})()}
-                    {item.isFavorite && <span style={s.favorite}>★ </span>}
-                    {item.name}
-                  </div>
-                  <div style={s.itemMeta}>
-                    {[item.brand, item.model].filter(Boolean).join(' · ') && (
-                      <span>{[item.brand, item.model].filter(Boolean).join(' · ')}</span>
-                    )}
-                  </div>
-                  {dimLine && <div style={s.itemMeta}>{dimLine}</div>}
-                  {item.notes && (
-                    <div style={s.itemNotes}>{item.notes}</div>
-                  )}
-                </div>
-                <div style={s.itemRight}>
-                  <div style={s.itemWeight}>{item.weight ? `${item.weight}g` : '—'}</div>
-                  {item.quantity > 1 && <div style={s.itemQty}>×{item.quantity}</div>}
-                </div>
-                <Badge condition={item.condition} />
-              </Link>
-              )
-            })}
+                showConsumable
+                showFavorite
+                rightSlot={<ItemCardRightWeight weight={item.weight} qty={item.quantity} />}
+                badge={<Badge condition={item.condition} />}
+              />
+            ))}
           </div>
         )
       })}

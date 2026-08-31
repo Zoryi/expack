@@ -5,6 +5,8 @@ import { Icon } from '../../components/Icon/Icon'
 import { Modal } from '../../components/Modal/Modal'
 import { QRCodeModal } from '../../components/QRCodeModal/QRCodeModal'
 import { useGear } from '../../hooks/useGear'
+import { ItemCard } from '../../components/ItemCard/ItemCard'
+import { CategoryHeader } from '../../components/CategoryHeader/CategoryHeader'
 import { resolveSac, getSacProgress, getSacTotalWeight, getItemEffectiveWeight } from '../../models/sac'
 import { prepareSharePayload, safeCompressForQr, getFocalInfo } from '../../utils/share'
 
@@ -38,25 +40,23 @@ const s = {
     fontWeight: 700, fontSize: 'var(--text-sm)',
   },
   kitIcon: { display: 'flex', alignItems: 'center', flexShrink: 0 },
-  packingItem: {
-    display: 'flex', alignItems: 'center', gap: '10px',
-    padding: '8px 12px', marginBottom: '2px',
-    borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-    transition: 'background var(--transition-fast)',
-  },
   packed: { opacity: 0.55, textDecoration: 'line-through' },
   checkbox: {
     width: '22px', height: '22px', borderRadius: '4px',
     border: '2px solid var(--color-border)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0, fontSize: '12px', fontWeight: 700, transition: 'all var(--transition-fast)',
+    flexShrink: 0, fontSize: '12px', fontWeight: 700, transition: 'all var(--transition-fast)', alignSelf: 'center',
   },
   checkboxChecked: { background: 'var(--color-primary)', border: '2px solid var(--color-primary)', color: 'white' },
-  itemInfo: { flex: 1, minWidth: 0 },
-  itemName: { fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text)' },
-  itemMeta: { fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '1px' },
-  itemWeight: { fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' },
   wornBadge: { fontSize: '10px', padding: '1px 6px', borderRadius: 'var(--radius-full)', background: '#dbeafe', color: '#2563eb', fontWeight: 600 },
+  rightCol: { display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, alignSelf: 'center' },
+  effWeight: { fontSize: '13px', fontWeight: 700, color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' },
+  fillBtn: {
+    fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--color-border)', cursor: 'pointer',
+    background: 'var(--color-surface)', color: 'var(--color-text-secondary)',
+  },
+  fillBtnFull: { background: '#22c55e', border: '1px solid #22c55e', color: 'white' },
 
   directLabel: {
     fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)',
@@ -147,6 +147,84 @@ export function SacDetail() {
 
   const grouped = getGrouped(sac, kits, items)
 
+  const directGrouped = (() => {
+    const directFi = (grouped.find(g => g.isDirect)?.items || []).filter(fi => !fi.deleted)
+    const order = new Map([...categories].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })).map((c, i) => [c.id, i]))
+    const map = {}
+    const groupOrder = []
+    for (const fi of directFi) {
+      const catId = fi.categoryId
+      if (!(catId in map)) { map[catId] = []; groupOrder.push(catId) }
+      map[catId].push(fi)
+    }
+    groupOrder.sort((a, b) => {
+      const ia = order.get(a) ?? Number.MAX_SAFE_INTEGER
+      const ib = order.get(b) ?? Number.MAX_SAFE_INTEGER
+      if (ia !== ib) return ia - ib
+      return (a ?? '').localeCompare(b ?? '', 'fr', { sensitivity: 'base' })
+    })
+    return groupOrder.map(catId => {
+      const cat = categories.find(c => c.id === catId)
+      const items = [...map[catId]].sort((x, y) => {
+        const xn = x.item?.name ?? x.name ?? ''
+        const yn = y.item?.name ?? y.name ?? ''
+        return xn.localeCompare(yn, 'fr', { sensitivity: 'base' }) ||
+          (x.item?.brand ?? '').localeCompare(y.item?.brand ?? '', 'fr', { sensitivity: 'base' }) ||
+          (x.item?.model ?? '').localeCompare(y.item?.model ?? '', 'fr', { sensitivity: 'base' })
+      })
+      return { catId, icon: cat?.icon || 'package', name: cat?.name || 'Sans catégorie', items }
+    })
+  })()
+
+  function renderPackedItem(fi) {
+    const effWeight = getItemEffectiveWeight(fi)
+    const it = fi.item || fi
+    const wornQty = (fi.isWorn || fi.quantity > 1) ? (
+      <span style={{ display: 'inline-flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {fi.isWorn && <span style={s.wornBadge}>Porté</span>}
+        {fi.quantity > 1 && <span>×{fi.quantity}</span>}
+      </span>
+    ) : null
+    const brandModel = [it.brand, it.model].filter(Boolean).join(' · ')
+    const dims = [it.length, it.width, it.depth].filter(v => v != null)
+    const dimsStr = dims.length ? `${dims.join(' × ')} cm` : ''
+    const volumeStr = it.volume != null ? `${it.volume} L` : ''
+    const dimLine = [dimsStr, volumeStr].filter(Boolean).join(' · ')
+    const metaLines = [wornQty, brandModel, dimLine || null].filter(Boolean)
+    return (
+      <ItemCard
+        key={fi.packingKey}
+        item={it}
+        onClick={() => sacTogglePacked(sac.id, fi.packingKey)}
+        role="checkbox"
+        ariaChecked={fi.isPacked}
+        style={{ ...(fi.isPacked ? s.packed : {}) }}
+        showConsumable
+        leading={(
+          <div style={{ ...s.checkbox, ...(fi.isPacked ? s.checkboxChecked : {}) }}>
+            {fi.isPacked ? '✓' : ''}
+          </div>
+        )}
+        metaLines={metaLines}
+        rightSlot={(
+          <div style={s.rightCol}>
+            {(fi.consumableType === 'water' || fi.consumableType === 'fuel') && (
+              <button
+                onClick={e => { e.stopPropagation(); sacToggleFill(sac.id, fi.packingKey) }}
+                style={{ ...s.fillBtn, ...(fi.fillState === 'full' ? s.fillBtnFull : {}) }}
+              >
+                {fi.fillState === 'full' ? 'Plein' : 'Vide'}
+              </button>
+            )}
+            <div style={s.effWeight}>
+              {effWeight >= 1000 ? `${(effWeight / 1000).toFixed(1)} kg` : `${effWeight} g`}
+            </div>
+          </div>
+        )}
+      />
+    )
+  }
+
   if (!sac) {
     return (
       <div style={s.container}>
@@ -236,78 +314,46 @@ export function SacDetail() {
           </div>
         </div>
 
-        {grouped.map(group => (
-          <div key={group.name} style={s.kitGroup}>
-            <div style={s.kitHeader}>
-              <span style={s.kitIcon}><Icon name={group.isDirect ? 'clipboard' : group.icon} size="sm" /></span>
-              <span>{group.isDirect ? 'Articles directs' : group.name}</span>
-              <span style={{ fontWeight: 400, fontSize: '11px', color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>
-                {group.items.filter(i => i.isPacked).length}/{group.items.length}
-              </span>
-            </div>
-
-            {Object.entries(group.subGroups).map(([subName, subGroup]) => (
-              <div key={subName} style={subName !== '__all__' ? { paddingLeft: '24px' } : {}}>
-                {subName !== '__all__' && (
-                  <div style={s.kitHeader}>
-                    <span style={s.kitIcon}><Icon name={subGroup.icon} size="sm" /></span>
-                    <span style={{ flex: 1 }}>{subName}</span>
-                    <span style={{ fontWeight: 400, fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                      {subGroup.items.filter(i => i.isPacked).length}/{subGroup.items.length}
-                    </span>
-                  </div>
-                )}
-                {subGroup.items.map(fi => (
-                  <div
-                    key={fi.packingKey}
-                    style={{ ...s.packingItem, ...(fi.isPacked ? s.packed : {}) }}
-                    onClick={() => sacTogglePacked(sac.id, fi.packingKey)}
-                    role="checkbox"
-                    aria-checked={fi.isPacked}
-                  >
-                    <div style={{ ...s.checkbox, ...(fi.isPacked ? s.checkboxChecked : {}) }}>
-                      {fi.isPacked ? '✓' : ''}
-                    </div>
-                    <div style={s.itemInfo}>
-                      <div style={s.itemName}>{fi.name}</div>
-                      <div style={{ ...s.itemMeta, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        {fi.isWorn && <span style={s.wornBadge}>Porté</span>}
-                        {fi.isConsumable && (() => {
-  const icon = fi.consumableType === 'water' ? 'droplet'
-    : fi.consumableType === 'fuel' ? 'flame'
-    : fi.consumableType === 'food' ? 'food'
-    : 'refresh'
-  return <Icon name={icon} size="xs" style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 4 }} />
-})()}
-                        {fi.quantity > 1 && <span>×{fi.quantity}</span>}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                      {(fi.consumableType === 'water' || fi.consumableType === 'fuel') && (
-                        <button
-                          onClick={e => { e.stopPropagation(); sacToggleFill(sac.id, fi.packingKey) }}
-                          style={{
-                            fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--color-border)', cursor: 'pointer',
-                            background: fi.fillState === 'full' ? '#22c55e' : 'var(--color-surface)',
-                            color: fi.fillState === 'full' ? 'white' : 'var(--color-text-secondary)',
-                          }}
-                        >
-                          {fi.fillState === 'full' ? 'Plein' : 'Vide'}
-                        </button>
-                      )}
-                      <div style={s.itemWeight}>
-                        {getItemEffectiveWeight(fi) >= 1000
-                          ? `${(getItemEffectiveWeight(fi) / 1000).toFixed(1)} kg`
-                          : `${getItemEffectiveWeight(fi)} g`}
-                      </div>
-                    </div>
+        {grouped.map(group => {
+          if (group.isDirect) {
+            return (
+              <div key={group.name} style={s.kitGroup}>
+                {directGrouped.map(catGroup => (
+                  <div key={catGroup.catId} style={{ marginBottom: '8px' }}>
+                    <CategoryHeader icon={catGroup.icon} name={catGroup.name} count={catGroup.items.length} />
+                    {catGroup.items.map(fi => renderPackedItem(fi))}
                   </div>
                 ))}
               </div>
-            ))}
-          </div>
-        ))}
+            )
+          }
+          return (
+            <div key={group.name} style={s.kitGroup}>
+              <div style={s.kitHeader}>
+                <span style={s.kitIcon}><Icon name={group.icon} size="sm" /></span>
+                <span>{group.name}</span>
+                <span style={{ fontWeight: 400, fontSize: '11px', color: 'var(--color-text-secondary)', marginLeft: 'auto' }}>
+                  {group.items.filter(i => i.isPacked).length}/{group.items.length}
+                </span>
+              </div>
+
+              {Object.entries(group.subGroups).map(([subName, subGroup]) => (
+                <div key={subName} style={subName !== '__all__' ? { paddingLeft: '24px' } : {}}>
+                  {subName !== '__all__' && (
+                    <div style={s.kitHeader}>
+                      <span style={s.kitIcon}><Icon name={subGroup.icon} size="sm" /></span>
+                      <span style={{ flex: 1 }}>{subName}</span>
+                      <span style={{ fontWeight: 400, fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                        {subGroup.items.filter(i => i.isPacked).length}/{subGroup.items.length}
+                      </span>
+                    </div>
+                  )}
+                  {subGroup.items.map(fi => renderPackedItem(fi))}
+                </div>
+              ))}
+            </div>
+          )
+        })}
 
         {(!resolved || resolved.flatItems.length === 0) && (
           <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>

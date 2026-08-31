@@ -4,6 +4,8 @@ import { Header } from '../../components/Header/Header'
 import { Icon } from '../../components/Icon/Icon'
 import { ICONS } from '../../components/Icon/icons'
 import { ItemSelectModal } from '../../components/ItemSelectModal/ItemSelectModal'
+import { ItemCard } from '../../components/ItemCard/ItemCard'
+import { CategoryHeader } from '../../components/CategoryHeader/CategoryHeader'
 import { Modal } from '../../components/Modal/Modal'
 import { useGear } from '../../hooks/useGear'
 import { getKitTotalWeight } from '../../models/kit'
@@ -55,7 +57,7 @@ export function KitForm() {
 function KitFormInner({ existingKit }) {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { kits, items, addKit, updateKit, deleteKit } = useGear()
+  const { kits, items, categories, addKit, updateKit, deleteKit } = useGear()
   const isEditing = Boolean(id)
 
   const [form, setForm] = useState(existingKit ? kitFormFromExisting(existingKit) : defaultKitForm)
@@ -76,6 +78,35 @@ function KitFormInner({ existingKit }) {
     }
     return w
   }, [form, items, kits])
+
+  const groupedEntries = useMemo(() => {
+    const withItems = form.itemEntries
+      .map(entry => ({ entry, item: items.find(i => i.id === entry.itemId) }))
+      .filter(x => x.item)
+    const order = new Map([...categories].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })).map((c, i) => [c.id, i]))
+    const map = {}
+    const groupOrder = []
+    for (const e of withItems) {
+      const catId = e.item.categoryId
+      if (!(catId in map)) { map[catId] = []; groupOrder.push(catId) }
+      map[catId].push(e)
+    }
+    groupOrder.sort((a, b) => {
+      const ia = order.get(a) ?? Number.MAX_SAFE_INTEGER
+      const ib = order.get(b) ?? Number.MAX_SAFE_INTEGER
+      if (ia !== ib) return ia - ib
+      return (a ?? '').localeCompare(b ?? '', 'fr', { sensitivity: 'base' })
+    })
+    return groupOrder.map(catId => {
+      const cat = categories.find(c => c.id === catId)
+      const entries = [...map[catId]].sort((x, y) =>
+        x.item.name.localeCompare(y.item.name, 'fr', { sensitivity: 'base' }) ||
+        (x.item.brand ?? '').localeCompare(y.item.brand ?? '', 'fr', { sensitivity: 'base' }) ||
+        (x.item.model ?? '').localeCompare(y.item.model ?? '', 'fr', { sensitivity: 'base' })
+      )
+      return { catId, icon: cat?.icon || 'package', name: cat?.name || 'Sans catégorie', entries }
+    })
+  }, [form.itemEntries, items, categories])
 
   const handleAddItems = (selectedIds) => {
     for (const id of selectedIds) {
@@ -115,7 +146,6 @@ function KitFormInner({ existingKit }) {
     navigate('/kits')
   }
 
-  const getItemName = (iid) => items.find(i => i.id === iid)?.name || 'Article inconnu'
   const getKitName = (kid) => kits.find(k => k.id === kid)?.name || 'Kit inconnu'
 
   const availableSubKits = kits.filter(k => k.id !== id)
@@ -147,24 +177,29 @@ function KitFormInner({ existingKit }) {
 
         <div style={s.section}>
           <div style={s.sectionTitle}>Articles ({form.itemEntries.length})</div>
-          <div style={s.entryList}>
-            {form.itemEntries.map(entry => (
-              <div key={entry.itemId} style={s.entryRow}>
-                <span style={s.entryName}>{getItemName(entry.itemId)}</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={entry.quantity}
-                  onChange={e => changeQty(entry.itemId, Number(e.target.value))}
-                  style={{ width: '44px', padding: '4px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', textAlign: 'center', fontSize: '12px' }}
-                />
-                <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', width: '40px', textAlign: 'right' }}>
-                  {(() => { const it = items.find(i => i.id === entry.itemId); return it ? `${(it.weight || 0) * entry.quantity}g` : '' })()}
-                </span>
-                <button style={s.removeBtn} onClick={() => removeItem(entry.itemId)}>✕</button>
+          {groupedEntries.map(group => (
+            <div key={group.catId} style={{ marginBottom: '10px' }}>
+              <CategoryHeader icon={group.icon} name={group.name} count={group.entries.length} />
+              <div style={s.entryList}>
+                {group.entries.map(({ entry, item: it }) => (
+                  <div key={entry.itemId} style={s.entryRow}>
+                    <ItemCard compact item={it} style={{ flex: 1, minWidth: 0 }} />
+                    <input
+                      type="number"
+                      min="1"
+                      value={entry.quantity}
+                      onChange={e => changeQty(entry.itemId, Number(e.target.value))}
+                      style={{ width: '44px', padding: '4px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: 'var(--color-text)', textAlign: 'center', fontSize: '12px' }}
+                    />
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)', width: '40px', textAlign: 'right' }}>
+                      {`${(it.weight || 0) * entry.quantity}g`}
+                    </span>
+                    <button style={s.removeBtn} onClick={() => removeItem(entry.itemId)}>✕</button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
           <button style={s.addBtn} onClick={() => setShowItemPicker(true)}>+ Ajouter des articles</button>
         </div>
 
@@ -202,6 +237,7 @@ function KitFormInner({ existingKit }) {
           onConfirm={handleAddItems}
           onCancel={() => setShowItemPicker(false)}
           title="Sélectionner des articles"
+          categories={categories}
         />
       )}
 
