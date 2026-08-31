@@ -80,7 +80,7 @@ export function KitsPage() {
 
   return (
     <div style={s.container}>
-      <Header title="Kits" onBack={() => navigate('/inventory')} />
+      <Header title="Kits" />
 
       <div style={s.list}>
         {sortedKits.map(kit => (

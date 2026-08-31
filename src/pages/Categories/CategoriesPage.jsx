@@ -264,7 +264,7 @@ export function CategoriesPage() {
 
   return (
     <div style={s.container}>
-      <Header title="Catégories" onBack={() => window.history.back()} />
+      <Header title="Catégories" />
 
       <div style={s.list}>
         {sortedCategories.map(cat => (

@@ -152,7 +152,7 @@ function KitFormInner({ existingKit }) {
 
   return (
     <div style={s.container}>
-      <Header title={isEditing ? 'Modifier le kit' : 'Nouveau kit'} onBack={() => navigate('/kits')} />
+      <Header title={isEditing ? 'Modifier le kit' : 'Nouveau kit'} />
 
       <div style={s.form}>
         <div style={s.section}>

@@ -236,7 +236,7 @@ function ItemFormInner({ existingItem }) {
 
   return (
     <div style={s.container}>
-      <Header title={isEditing ? 'Modifier l\'article' : 'Nouvel article'} onBack={() => navigate('/inventory')} />
+      <Header title={isEditing ? 'Modifier l\'article' : 'Nouvel article'} />
 
       <div style={s.form}>
         <div style={s.section}>

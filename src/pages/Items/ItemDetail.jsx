@@ -74,7 +74,7 @@ export function ItemDetail() {
   if (!item) {
     return (
       <div style={s.container}>
-        <Header title="Article introuvable" onBack={() => navigate('/inventory')} />
+        <Header title="Article introuvable" />
         <div style={s.emptyState}>Cet article n'existe pas ou a été supprimé.</div>
       </div>
     )
@@ -99,7 +99,6 @@ export function ItemDetail() {
     <div style={s.container}>
       <Header
         title={item.name}
-        onBack={() => navigate('/inventory')}
         rightAction={
           <div style={{ display: 'flex', gap: '12px' }}>
             <button onClick={handleShare} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-primary)', display: 'flex' }} aria-label="Partager"><Icon name="share" /></button>

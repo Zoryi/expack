@@ -228,7 +228,7 @@ export function SacDetail() {
   if (!sac) {
     return (
       <div style={s.container}>
-        <Header title="Sac introuvable" onBack={() => navigate('/sacs')} />
+        <Header title="Sac introuvable" />
         <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
           Ce sac n'existe pas ou a été supprimé.
         </div>
@@ -244,7 +244,6 @@ export function SacDetail() {
     <div style={s.container}>
       <Header
         title={sac.name || 'Sans nom'}
-        onBack={() => navigate('/sacs')}
         rightAction={
           <div style={{ display: 'flex', gap: '8px' }}>
             <button

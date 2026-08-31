@@ -163,7 +163,7 @@ function SacFormInner({ existingSac }) {
 
   return (
     <div style={s.container}>
-      <Header title={isEditing ? 'Modifier le sac' : 'Nouveau sac'} onBack={() => navigate(isEditing ? '/sacs/' + id : '/sacs')} />
+      <Header title={isEditing ? 'Modifier le sac' : 'Nouveau sac'} />
 
       <div style={s.form}>
         <div style={s.section}>

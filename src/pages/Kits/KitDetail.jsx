@@ -72,7 +72,7 @@ export function KitDetail() {
   if (!kit) {
     return (
       <div style={s.container}>
-        <Header title="Kit introuvable" onBack={() => navigate('/kits')} />
+        <Header title="Kit introuvable" />
         <div style={s.emptyState}>Ce kit n'existe pas ou a été supprimé.</div>
       </div>
     )
@@ -146,7 +146,6 @@ export function KitDetail() {
     <div style={s.container}>
       <Header
         title={kit.name}
-        onBack={() => navigate('/kits')}
         rightAction={
           <div style={{ display: 'flex', gap: '12px' }}>
             <button onClick={handleShare} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-primary)', display: 'flex', alignItems: 'center' }} aria-label="Partager"><Icon name="share" /></button>
