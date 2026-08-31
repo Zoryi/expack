@@ -1,9 +1,7 @@
-const ID_PREFIX = 'kit'
-
-let _counter = Date.now()
+import { createId } from '../utils/id'
 
 export function generateId() {
-  return `${ID_PREFIX}-${++_counter}-${Math.random().toString(36).slice(2, 6)}`
+  return createId('kit')
 }
 
 export function createKit(overrides = {}) {

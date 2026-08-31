@@ -2,18 +2,13 @@ import { Capacitor } from '@capacitor/core'
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import pako from 'pako'
+import { createId } from './id'
 
 const QR_CAPACITY = {
   L: 2953,
   M: 2331,
   Q: 1663,
   H: 1273,
-}
-
-let _idCounter = Date.now()
-
-function generateId(prefix) {
-  return `${prefix}-${++_idCounter}-${Math.random().toString(36).slice(2, 6)}`
 }
 
 function toBase64Url(bytes) {
@@ -216,18 +211,18 @@ export function reassignIds(payload, existingState) {
     if (existing) {
       catIdMap[cat.id] = existing.id
     } else {
-      const newId = generateId('cat')
+      const newId = createId('cat')
       catIdMap[cat.id] = newId
       const conflict = existingState.categories.find(c => c.id === newId) ||
         newCategories.find(c => c.id === newId)
-      const finalId = conflict ? generateId('cat') : newId
+      const finalId = conflict ? createId('cat') : newId
       catIdMap[cat.id] = finalId
       newCategories.push({ ...cat, id: finalId })
     }
   }
 
   for (const item of payload.items) {
-    const newId = existingItemIds.has(item.id) ? generateId('itm') : item.id
+    const newId = existingItemIds.has(item.id) ? createId('itm') : item.id
     idMap[item.id] = newId
     newItems.push({
       ...item,
@@ -239,7 +234,7 @@ export function reassignIds(payload, existingState) {
   const itemIdMap = idMap
 
   for (const kit of payload.kits) {
-    const newId = existingKitIds.has(kit.id) ? generateId('kit') : kit.id
+    const newId = existingKitIds.has(kit.id) ? createId('kit') : kit.id
     idMap[kit.id] = newId
     newKits.push({
       ...kit,
@@ -255,7 +250,7 @@ export function reassignIds(payload, existingState) {
   }
 
   for (const sac of payload.sacs) {
-    const newId = existingSacIds.has(sac.id) ? generateId('sac') : sac.id
+    const newId = existingSacIds.has(sac.id) ? createId('sac') : sac.id
     idMap[sac.id] = newId
     newSacs.push({
       ...sac,

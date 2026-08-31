@@ -1,8 +1,7 @@
-const ID_PREFIX = 'sac'
-let _counter = Date.now()
+import { createId } from '../utils/id'
 
 export function generateId() {
-  return `${ID_PREFIX}-${++_counter}-${Math.random().toString(36).slice(2, 6)}`
+  return createId('sac')
 }
 
 export const TRIP_TYPES = {
@@ -155,6 +154,11 @@ export function resolveSac(sac, kits, items) {
         categoryId: item.categoryId,
         isConsumable: item.isConsumable,
         isWorn: item.isWorn,
+        consumableType: item.consumableType,
+        volume: item.volume,
+        dryWeight: item.dryWeight,
+        fullWeight: item.fullWeight,
+        fillState: sac.packingFill[packingKey] ?? 'empty',
         item,
         kitPath: [],
         isPacked: sac.packingState[packingKey] ?? false,
@@ -168,6 +172,7 @@ export function resolveSac(sac, kits, items) {
           ...rk,
           entryId: entry.entryId,
           packingKey,
+          fillState: sac.packingFill[packingKey] ?? 'empty',
           isPacked: sac.packingState[packingKey] ?? false,
         })
       }
@@ -198,6 +203,10 @@ function resolveKitRecursive(kitId, kits, items, parentNames, parentKitIds) {
       categoryId: item.categoryId,
       isConsumable: item.isConsumable,
       isWorn: item.isWorn,
+      consumableType: item.consumableType,
+      volume: item.volume,
+      dryWeight: item.dryWeight,
+      fullWeight: item.fullWeight,
       kitPath: kitNames,
       kitIdPath: kitIds.slice(1).join('/'),
     })
@@ -211,11 +220,12 @@ function resolveKitRecursive(kitId, kits, items, parentNames, parentKitIds) {
 }
 
 export function getItemEffectiveWeight(fi) {
-  if (fi.consumableType === 'water' && fi.capacityL != null) {
-    return (fi.fillState === 'empty' ? (fi.weight || 0) : (fi.weight || 0) + fi.capacityL * 1000) * fi.quantity
+  const fillState = fi.fillState ?? 'empty'
+  if (fi.consumableType === 'water' && fi.volume != null) {
+    return (fillState === 'empty' ? (fi.weight || 0) : (fi.weight || 0) + fi.volume * 1000) * fi.quantity
   }
   if (fi.consumableType === 'fuel') {
-    return (fi.fillState === 'empty' ? fi.dryWeight : (fi.fullWeight || fi.weight)) * fi.quantity
+    return (fillState === 'empty' ? fi.dryWeight : (fi.fullWeight || fi.weight)) * fi.quantity
   }
   return (fi.weight || 0) * fi.quantity
 }

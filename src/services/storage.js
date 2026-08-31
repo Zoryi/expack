@@ -1,4 +1,3 @@
-import { Capacitor } from '@capacitor/core'
 import { CapacitorSQLite, SQLiteConnection } from '@capacitor-community/sqlite'
 
 const sqlite = new SQLiteConnection(CapacitorSQLite)
@@ -6,6 +5,7 @@ const DB_NAME = 'expack_db'
 const STORE_TABLE = 'storage'
 let db = null
 let initPromise = null
+const writeQueues = new Map()
 
 async function initDB() {
   if (db) return db
@@ -39,7 +39,11 @@ export const storage = {
   },
   async set(key, value) {
     await initDB()
-    await db.run(`INSERT OR REPLACE INTO ${STORE_TABLE} (key,value) VALUES(?,?)`, [key, JSON.stringify(value)])
+    const json = JSON.stringify(value)
+    const prev = writeQueues.get(key) || Promise.resolve()
+    const next = prev.then(() => db.run(`INSERT OR REPLACE INTO ${STORE_TABLE} (key,value) VALUES(?,?)`, [key, json]))
+    writeQueues.set(key, next.catch(() => {}))
+    await next
   },
   async delete(key) {
     await initDB()

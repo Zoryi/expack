@@ -3,12 +3,13 @@ import { Capacitor } from '@capacitor/core'
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { useStorage } from '../hooks/useStorage'
-import { createItem, updateItem as updateItemModel, validateItem, CONDITION, PRIORITY } from '../models/item'
+import { updateItem as updateItemModel, validateItem } from '../models/item'
 import { applyImport } from '../utils/importConflicts'
 import { createCategory } from '../models/category'
 import { DEFAULT_CATEGORIES } from '../models/category'
-import { createKit, resolveKitItems, validateKit } from '../models/kit'
-import { createSac, resolveSac, addDirectEntry, addKitEntry, removeEntry, togglePacked, toggleFill, setAllPacked, getSacTotalWeight, getSacProgress, TRIP_TYPES } from '../models/sac'
+import { resolveKitItems, validateKit } from '../models/kit'
+import { resolveSac, addDirectEntry, addKitEntry, removeEntry, togglePacked, toggleFill, setAllPacked, getSacTotalWeight, getSacProgress } from '../models/sac'
+import { generateTestData as buildTestData } from '../data/testData'
 
 const EMPTY_ITEMS = []
 const EMPTY_KITS = []
@@ -161,103 +162,7 @@ export function GearProvider({ children }) {
   }, [setItems, setCategories, setKits, setSacs])
 
   const generateTestData = useCallback(() => {
-    const newItems = [
-      createItem({ name: 'Tente MSR Hubba Hubba NX', categoryId: 'cat-abri', brand: 'MSR', weight: 1800, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, isFavorite: true, purchasePrice: 450 }),
-      createItem({ name: 'Duvet -10°C', categoryId: 'cat-abri', brand: 'Cumulus', weight: 950, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.INDISPENSABLE, isFavorite: true, purchasePrice: 320 }),
-      createItem({ name: 'Matelas Therm-a-Rest NeoAir', categoryId: 'cat-abri', brand: 'Therm-a-Rest', weight: 510, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 180 }),
-      createItem({ name: 'Coussin gonflable', categoryId: 'cat-abri', brand: 'Sea to Summit', weight: 60, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.OPTIONNEL, purchasePrice: 25 }),
-      createItem({ name: 'Réchaud MSR PocketRocket Deluxe', categoryId: 'cat-cuisine', brand: 'MSR', weight: 73, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, isFavorite: true, purchasePrice: 85 }),
-      createItem({ name: 'Gaz MSR IsoPro 230g', categoryId: 'cat-cuisine', brand: 'MSR', weight: 370, quantity: 2, condition: CONDITION.USAGE, priority: PRIORITY.IMPORTANT, isConsumable: true, consumableType: 'fuel', fullWeight: 370, dryWeight: 140, purchasePrice: 8 }),
-      createItem({ name: 'Casserole Titanium 1.3L', categoryId: 'cat-cuisine', brand: 'Toaks', weight: 125, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 55 }),
-      createItem({ name: 'Gourde Platypus 2L', categoryId: 'cat-cuisine', brand: 'Platypus', weight: 40, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, isConsumable: true, consumableType: 'water', capacityL: 2, purchasePrice: 15 }),
-      createItem({ name: 'T-shirt mérinos 160', categoryId: 'cat-vetements', brand: 'Icebreaker', weight: 150, quantity: 2, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, purchasePrice: 60 }),
-      createItem({ name: 'Pantalon de randonnée', categoryId: 'cat-vetements', brand: 'Fjällräven', weight: 350, quantity: 1, condition: CONDITION.USAGE, priority: PRIORITY.IMPORTANT, purchasePrice: 120 }),
-      createItem({ name: 'Veste imperméable Gore-Tex', categoryId: 'cat-vetements', brand: 'Millet', weight: 420, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 250 }),
-      createItem({ name: 'Sac à dos Osprey Exos 48L', categoryId: 'cat-sac', brand: 'Osprey', weight: 1150, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, isWorn: true, isFavorite: true, purchasePrice: 180 }),
-      createItem({ name: 'Poche à eau 3L', categoryId: 'cat-sac', brand: 'Platypus', weight: 130, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, isConsumable: true, consumableType: 'water', capacityL: 3, purchasePrice: 28 }),
-      createItem({ name: 'Trousse de secours', categoryId: 'cat-securite', brand: '', weight: 200, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 35 }),
-      createItem({ name: 'GPS Garmin eTrex 22x', categoryId: 'cat-navigation', brand: 'Garmin', weight: 141, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, purchasePrice: 200 }),
-      createItem({ name: 'Lampe frontale Petzl Actik Core', categoryId: 'cat-navigation', brand: 'Petzl', weight: 80, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.INDISPENSABLE, purchasePrice: 65 }),
-      createItem({ name: 'Carte IGN 1:25000', categoryId: 'cat-navigation', brand: 'IGN', weight: 50, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.INDISPENSABLE, purchasePrice: 12 }),
-      createItem({ name: 'Brosse à dents pliable', categoryId: 'cat-hygiene', brand: 'Sea to Summit', weight: 20, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.OPTIONNEL, purchasePrice: 8 }),
-      createItem({ name: 'Crème solaire SPF50', categoryId: 'cat-hygiene', brand: '', weight: 80, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.OPTIONNEL, isConsumable: true, consumableType: 'other', purchasePrice: 12 }),
-      createItem({ name: 'Couteau suisse Climber', categoryId: 'cat-divers', brand: 'Victorinox', weight: 75, quantity: 1, condition: CONDITION.BON, priority: PRIORITY.IMPORTANT, purchasePrice: 35 }),
-      createItem({ name: 'Assiette pliable Sea to Summit', categoryId: 'cat-cuisine', brand: 'Sea to Summit', weight: 55, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.OPTIONNEL, purchasePrice: 18 }),
-      createItem({ name: 'Mug plastique', categoryId: 'cat-cuisine', brand: 'Sea to Summit', weight: 30, quantity: 1, condition: CONDITION.NEUF, priority: PRIORITY.OPTIONNEL, purchasePrice: 12 }),
-    ]
-
-    const itemIndex = {}
-    for (const item of newItems) {
-      const key = item.name.split(' ').slice(0, 2).join(' ')
-      itemIndex[key] = item.id
-    }
-
-    const messKit = createKit({
-      name: 'Couvert & Vaisselle',
-      description: 'Assiette et mug',
-      icon: 'tools',
-      color: '#84cc16',
-      itemEntries: [
-        { itemId: itemIndex['Assiette pliable'], quantity: 1 },
-        { itemId: itemIndex['Mug plastique'], quantity: 1 },
-      ],
-    })
-
-    const newKits = [
-      createKit({
-        name: 'Cuisine légère',
-        description: 'Kit cuisine pour 1 personne',
-        icon: 'cook',
-        color: '#f59e0b',
-        itemEntries: [
-          { itemId: itemIndex['Réchaud MSR'], quantity: 1 },
-          { itemId: itemIndex['Gaz MSR'], quantity: 2 },
-          { itemId: itemIndex['Casserole Titanium'], quantity: 1 },
-          { itemId: itemIndex['Gourde Platypus'], quantity: 1 },
-        ],
-        subKitEntries: [{ kitId: messKit.id }],
-      }),
-      createKit({
-        name: 'Navigation',
-        description: 'Kit navigation et orientation',
-        icon: 'compass',
-        color: '#06b6d4',
-        itemEntries: [
-          { itemId: itemIndex['GPS Garmin'], quantity: 1 },
-          { itemId: itemIndex['Lampe frontale'], quantity: 1 },
-          { itemId: itemIndex['Carte IGN'], quantity: 1 },
-        ],
-      }),
-      messKit,
-    ]
-
-    const newSacs = [
-      createSac({
-        name: 'Trek Jura 3 jours',
-        description: 'Tour du Jura en 3 jours - mai',
-        destination: 'Jura',
-        duration: 3,
-        type: TRIP_TYPES.TREK,
-        entries: [
-          { entryId: 'e-gen-1', type: 'item', itemId: itemIndex['Tente MSR'], quantity: 1 },
-          { entryId: 'e-gen-2', type: 'item', itemId: itemIndex['Duvet -10°C'], quantity: 1 },
-          { entryId: 'e-gen-3', type: 'item', itemId: itemIndex['Matelas Therm-a-Rest'], quantity: 1 },
-          { entryId: 'e-gen-4', type: 'item', itemId: itemIndex['Coussin gonflable'], quantity: 1 },
-          { entryId: 'e-gen-5', type: 'kit', kitId: newKits[0].id },
-          { entryId: 'e-gen-6', type: 'item', itemId: itemIndex['T-shirt mérinos'], quantity: 2 },
-          { entryId: 'e-gen-7', type: 'item', itemId: itemIndex['Pantalon de'], quantity: 1 },
-          { entryId: 'e-gen-8', type: 'item', itemId: itemIndex['Veste imperméable'], quantity: 1 },
-          { entryId: 'e-gen-9', type: 'item', itemId: itemIndex['Poche à'], quantity: 1 },
-          { entryId: 'e-gen-10', type: 'item', itemId: itemIndex['Trousse de'], quantity: 1 },
-          { entryId: 'e-gen-11', type: 'kit', kitId: newKits[1].id },
-          { entryId: 'e-gen-12', type: 'item', itemId: itemIndex['Brosse à'], quantity: 1 },
-          { entryId: 'e-gen-13', type: 'item', itemId: itemIndex['Crème solaire'], quantity: 1 },
-          { entryId: 'e-gen-14', type: 'item', itemId: itemIndex['Couteau suisse'], quantity: 1 },
-        ],
-        packingState: {},
-      }),
-    ]
-
+    const { items: newItems, kits: newKits, sacs: newSacs } = buildTestData()
     setItems(newItems)
     setKits(newKits)
     setSacs(newSacs)

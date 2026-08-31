@@ -1,9 +1,7 @@
-const ID_PREFIX = 'itm'
-
-let _counter = Date.now()
+import { createId } from '../utils/id'
 
 export function generateId() {
-  return `${ID_PREFIX}-${++_counter}-${Math.random().toString(36).slice(2, 6)}`
+  return createId('itm')
 }
 
 export const CONDITION = {
@@ -80,7 +78,6 @@ const DEFAULT_VALUES = {
   purchasePrice: null,
   isConsumable: false,
   consumableType: CONSUMABLE_TYPE.OTHER,
-  capacityL: null,
   dryWeight: 0,
   fullWeight: 0,
   isWorn: false,

@@ -23,12 +23,14 @@ export function useStorage(key, defaultValue) {
   }, [key, defaultValue])
 
   const setPersisted = useCallback(async (next) => {
-    setValue((prev) => {
-      const resolved = typeof next === 'function' ? next(prev) : next
-      storage.set(key, resolved).catch(setError)
-      return resolved
-    })
-  }, [key])
+    const resolved = typeof next === 'function' ? next(value) : next
+    setValue(resolved)
+    try {
+      await storage.set(key, resolved)
+    } catch (e) {
+      setError(e)
+    }
+  }, [key, value])
 
   const remove = useCallback(async () => {
     await storage.delete(key)

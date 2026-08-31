@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Header } from '../../components/Header/Header'
 import { Icon } from '../../components/Icon/Icon'
@@ -72,12 +73,17 @@ export function KitsPage() {
   const navigate = useNavigate()
   const { kits } = useGear()
 
+  const sortedKits = useMemo(
+    () => [...kits].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })),
+    [kits]
+  )
+
   return (
     <div style={s.container}>
       <Header title="Kits" onBack={() => navigate('/inventory')} />
 
       <div style={s.list}>
-        {kits.map(kit => (
+        {sortedKits.map(kit => (
           <Link key={kit.id} to={`/kits/${kit.id}`} style={s.kitRow}>
             <div style={{ ...s.iconWrap, background: (kit.color || '#6b7280') }}>
               <Icon name={kit.icon || 'package'} size="sm" />

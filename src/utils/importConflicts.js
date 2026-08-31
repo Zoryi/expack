@@ -1,3 +1,6 @@
+import { createId } from './id'
+import { normalize } from './string'
+
 export const MERGE = 'merge'
 export const DUPLICATE = 'duplicate'
 export const SKIP = 'skip'
@@ -18,7 +21,6 @@ export const MEANINGFUL_ITEM_FIELDS = [
   'purchasePrice',
   'isConsumable',
   'consumableType',
-  'capacityL',
   'dryWeight',
   'fullWeight',
   'isWorn',
@@ -29,7 +31,7 @@ export const MEANINGFUL_ITEM_FIELDS = [
 
 const NUMERIC_ITEM_FIELDS = new Set([
   'weight', 'quantity', 'length', 'width', 'depth', 'volume',
-  'purchasePrice', 'capacityL', 'dryWeight', 'fullWeight',
+  'purchasePrice', 'dryWeight', 'fullWeight',
 ])
 
 export const ITEM_FIELD_LABELS = {
@@ -48,23 +50,12 @@ export const ITEM_FIELD_LABELS = {
   purchasePrice: "Prix d'achat",
   isConsumable: 'Consommable',
   consumableType: 'Type de consommable',
-  capacityL: 'Capacité (L)',
   dryWeight: 'Poids à vide',
   fullWeight: 'Poids en charge',
   isWorn: 'Porté',
   priority: 'Priorité',
   isFavorite: 'Favori',
   notes: 'Notes',
-}
-
-let _idCounter = Date.now()
-
-function generateId(prefix) {
-  return `${prefix}-${++_idCounter}-${Math.random().toString(36).slice(2, 6)}`
-}
-
-function normalize(str) {
-  return (str || '').trim().toLowerCase()
 }
 
 const FUZZY_THRESHOLD = 0.9
@@ -260,13 +251,13 @@ function mergeSacReferences(existingSac, importedSac, itemIdMap, kitIdMap) {
       const target = itemIdMap[e.itemId]
       if (target && !existingItemIds.has(target)) {
         existingItemIds.add(target)
-        entries.push({ entryId: generateId('sac'), type: 'item', itemId: target, quantity: e.quantity || 1 })
+        entries.push({ entryId: createId('sac'), type: 'item', itemId: target, quantity: e.quantity || 1 })
       }
     } else if (e.type === 'kit') {
       const target = kitIdMap[e.kitId]
       if (target && !existingKitIds.has(target)) {
         existingKitIds.add(target)
-        entries.push({ entryId: generateId('sac'), type: 'kit', kitId: target })
+        entries.push({ entryId: createId('sac'), type: 'kit', kitId: target })
       }
     }
   }
@@ -296,7 +287,7 @@ export function applyImport(payload, existingState, decisions = {}) {
     if (existing) {
       catIdMap[cat.id] = existing.id
     } else {
-      const newId = generateId('cat')
+      const newId = createId('cat')
       catIdMap[cat.id] = newId
       finalCategories.push({ ...cat, id: newId })
       existingCategoriesByName[normalize(cat.name)] = { id: newId }
@@ -341,7 +332,7 @@ export function applyImport(payload, existingState, decisions = {}) {
       itemIdMap[imported.id] = merged.id
       summary.merged++
     } else {
-      const newId = existingItemIds.has(imported.id) ? generateId('itm') : imported.id
+      const newId = existingItemIds.has(imported.id) ? createId('itm') : imported.id
       finalItems.push({ ...imported, id: newId, categoryId })
       existingItemIds.add(newId)
       itemIdMap[imported.id] = newId
@@ -356,7 +347,7 @@ export function applyImport(payload, existingState, decisions = {}) {
 
   for (let i = 0; i < payload.kits.length; i++) {
     const imported = payload.kits[i]
-    const conflict = detectConflictByName(payload.kits, existingState.kits, imported, i)
+    const conflict = detectConflictByName(existingState.kits, imported, i)
     const action = decisionAction(decisions.kits[i])
 
     if (action === SKIP) {
@@ -379,7 +370,7 @@ export function applyImport(payload, existingState, decisions = {}) {
       kitIdMap[imported.id] = merged.id
       summary.merged++
     } else {
-      const newId = existingKitIds.has(imported.id) ? generateId('kit') : imported.id
+      const newId = existingKitIds.has(imported.id) ? createId('kit') : imported.id
       finalKits.push({
         ...imported,
         id: newId,
@@ -403,7 +394,7 @@ export function applyImport(payload, existingState, decisions = {}) {
 
   for (let i = 0; i < payload.sacs.length; i++) {
     const imported = payload.sacs[i]
-    const conflict = detectConflictByName(payload.sacs, existingState.sacs, imported, i)
+    const conflict = detectConflictByName(existingState.sacs, imported, i)
     const action = decisionAction(decisions.sacs[i])
 
     if (action === SKIP) {
@@ -419,7 +410,7 @@ export function applyImport(payload, existingState, decisions = {}) {
       else finalSacs.push(merged)
       summary.merged++
     } else {
-      const newId = existingSacIds.has(imported.id) ? generateId('sac') : imported.id
+      const newId = existingSacIds.has(imported.id) ? createId('sac') : imported.id
       finalSacs.push({
         ...imported,
         id: newId,
@@ -438,7 +429,7 @@ export function applyImport(payload, existingState, decisions = {}) {
   return { items: finalItems, categories: finalCategories, kits: finalKits, sacs: finalSacs, summary }
 }
 
-function detectConflictByName(importedList, existingList, imported, index) {
+function detectConflictByName(existingList, imported, index) {
   const existing = existingList.find(x => normalize(x.name) === normalize(imported.name))
   return existing ? { index, imported, existing } : null
 }

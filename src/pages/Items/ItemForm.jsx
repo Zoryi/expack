@@ -168,7 +168,7 @@ const defaultFormState = {
   condition: CONDITION.BON,
   purchaseDate: '', purchasePrice: null,
   isConsumable: false, consumableType: CONSUMABLE_TYPE.OTHER,
-  capacityL: null, dryWeight: 0, fullWeight: 0,
+  dryWeight: 0, fullWeight: 0,
   isWorn: false,
   priority: PRIORITY.IMPORTANT, isFavorite: false,
   notes: '',
@@ -190,7 +190,6 @@ const formFromItem = (item) => ({
   purchasePrice: item.purchasePrice ?? null,
   isConsumable: item.isConsumable || false,
   consumableType: item.consumableType || CONSUMABLE_TYPE.OTHER,
-  capacityL: item.capacityL ?? null,
   dryWeight: item.dryWeight ?? 0,
   fullWeight: item.fullWeight ?? 0,
   isWorn: item.isWorn || false,
@@ -329,13 +328,6 @@ function ItemFormInner({ existingItem }) {
                   </button>
                 ))}
               </div>
-
-              {form.consumableType === CONSUMABLE_TYPE.WATER && (
-                <div>
-                  <label style={s.label}>Capacité (L)</label>
-                  <input style={s.input} type="number" value={form.capacityL ?? ''} onChange={e => set('capacityL', e.target.value ? Number(e.target.value) : null)} min="0" step="0.1" placeholder="Ex: 2" />
-                </div>
-              )}
 
               {form.consumableType === CONSUMABLE_TYPE.FUEL && (
                 <div style={s.row}>

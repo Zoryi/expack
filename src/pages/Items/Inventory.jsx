@@ -48,7 +48,7 @@ const s = {
   },
   item: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '10px',
     padding: '10px 12px',
     borderRadius: 'var(--radius-md)',
@@ -75,6 +75,15 @@ const s = {
     marginTop: '2px',
     fontSize: '11px',
     color: 'var(--color-text-secondary)',
+  },
+  itemNotes: {
+    marginTop: '2px',
+    fontSize: '11px',
+    color: 'var(--color-text-secondary)',
+    fontStyle: 'italic',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   itemRight: {
     textAlign: 'right',
@@ -138,6 +147,16 @@ export function Inventory() {
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('')
 
+  const byName = (a, b) =>
+    a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }) ||
+    (a.brand ?? '').localeCompare(b.brand ?? '', 'fr', { sensitivity: 'base' }) ||
+    (a.model ?? '').localeCompare(b.model ?? '', 'fr', { sensitivity: 'base' })
+
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })),
+    [categories]
+  )
+
   const filtered = useMemo(() => {
     let result = items
     if (search.trim()) {
@@ -147,7 +166,7 @@ export function Inventory() {
     if (filterCat) {
       result = result.filter(i => i.categoryId === filterCat)
     }
-    return result
+    return [...result].sort(byName)
   }, [items, search, filterCat])
 
   const grouped = useMemo(() => {
@@ -185,7 +204,7 @@ export function Inventory() {
         >
           Tous
         </button>
-        {categories.map(cat => (
+        {sortedCategories.map(cat => (
           <button
             key={cat.id}
             style={{
@@ -209,7 +228,11 @@ export function Inventory() {
         />
       )}
 
-      {Object.entries(grouped).map(([catId, catItems]) => {
+      {Object.entries(grouped).sort(([aId], [bId]) => {
+        const ca = categories.find(c => c.id === aId)
+        const cb = categories.find(c => c.id === bId)
+        return (ca?.name ?? '').localeCompare(cb?.name ?? '', 'fr', { sensitivity: 'base' })
+      }).map(([catId, catItems]) => {
         const cat = getCat(catId)
         return (
           <div key={catId} style={s.categoryGroup}>
@@ -218,7 +241,13 @@ export function Inventory() {
               <span>{cat?.name || 'Sans catégorie'}</span>
               <span style={{ color: 'var(--color-text-secondary)', fontWeight: 400, fontSize: '11px' }}>({catItems.length})</span>
             </div>
-            {catItems.map(item => (
+            {catItems.map(item => {
+              const { length, width, depth, volume } = item
+              const dims = [length, width, depth].filter(v => v != null)
+              const dimsStr = dims.length ? `${dims.join(' × ')} cm` : ''
+              const volumeStr = volume != null ? `${volume} L` : ''
+              const dimLine = [dimsStr, volumeStr].filter(Boolean).join(' · ')
+              return (
               <Link
                 key={item.id}
                 to={`/items/${item.id}`}
@@ -237,8 +266,14 @@ export function Inventory() {
                     {item.name}
                   </div>
                   <div style={s.itemMeta}>
-                    {item.brand && <span>{item.brand}</span>}
+                    {[item.brand, item.model].filter(Boolean).join(' · ') && (
+                      <span>{[item.brand, item.model].filter(Boolean).join(' · ')}</span>
+                    )}
                   </div>
+                  {dimLine && <div style={s.itemMeta}>{dimLine}</div>}
+                  {item.notes && (
+                    <div style={s.itemNotes}>{item.notes}</div>
+                  )}
                 </div>
                 <div style={s.itemRight}>
                   <div style={s.itemWeight}>{item.weight ? `${item.weight}g` : '—'}</div>
@@ -246,7 +281,8 @@ export function Inventory() {
                 </div>
                 <Badge condition={item.condition} />
               </Link>
-            ))}
+              )
+            })}
           </div>
         )
       })}

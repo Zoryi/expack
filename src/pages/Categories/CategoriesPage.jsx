@@ -217,6 +217,11 @@ export function CategoriesPage() {
 
   useBackClose(showForm, () => { setShowForm(false); setEditing(null) })
 
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })),
+    [categories]
+  )
+
   const itemCounts = useMemo(() => {
     const counts = {}
     for (const item of items) {
@@ -262,7 +267,7 @@ export function CategoriesPage() {
       <Header title="Catégories" onBack={() => window.history.back()} />
 
       <div style={s.list}>
-        {categories.map(cat => (
+        {sortedCategories.map(cat => (
           <div key={cat.id} style={s.card} onClick={() => openEdit(cat)}>
             <div style={{ ...s.iconWrap, background: cat.color }}>
               <Icon name={cat.icon} size="sm" />
